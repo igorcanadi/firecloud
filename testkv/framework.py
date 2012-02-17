@@ -7,6 +7,12 @@ NetKillEvent = namedtuple('NetKill', ['host0', 'host1'])
 NetUpEvent = namedtuple('NetUp', ['host0', 'host1'])
 
 
+class Server(object):
+  def __init__(self, host, port):
+    self.host = host
+    self.port = port
+
+
 class System(object):
   def __init__(self, clock, nodes):
     self.nodes = nodes

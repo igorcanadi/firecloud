@@ -24,15 +24,48 @@ Get = namedtuple('Get', 'ke')
 Sleep = namedtuple('Sleep', 'msec')
 
 
-
 #
 # Packings
 #
-RECOVER_PACK = '255s' 
-FAIL_PACK = '255s'
-PUT_PACK = '
 
 
+HEADER = 'QQQ'
+
+
+def pad(st):
+  while len(st) < 254:
+    ke += '\0'
+
+def pad_key(ke):
+  while len(ke) < 128:
+    ke += '\0'
+
+
+def write_out(time, seq, itm, out):
+  data = 0
+  if type(out) == Put:
+    data = len(out.val) + 1 # for the null
+  head = pack(HEADER, time, seq, data)
+  out(head)
+  
+  if type(itm) == Init:
+    for srv in itm.servers:
+      out(pad(srv))
+      out('\0')
+  if type(itm) == Recover:
+    out(pad(itm.serv))
+    out('\0')
+  if type(itm) == Fail:
+    out(pad(itm.serv))
+    out('\0')
+  if type(itm) == Put:
+    out(pad_key(itm.ke))
+    out('\0')
+    out(itm.val)
+    out('\0')
+  if type(itm) == Get:
+    out(pad_key(itm.ke))
+    out('\0')
 
 
 

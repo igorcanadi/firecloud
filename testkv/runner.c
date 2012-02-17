@@ -1,27 +1,23 @@
 
-#DEFINE END -1
-#DEFINE INIT 0
-#DEFINE FAIL 1
-#DEFINE RECOVER 2
-#DEFINE GET 3
-#DEFINE PUT 4
+#include <stdio.h>
+#include <stdlib.h>
+
+#define END -1
+#define INIT 0
+#define FAIL 1
+#define RECOVER 2
+#define GET 3
+#define PUT 4
 
 
-void kv739_init(char *servers[]);
-void kv739_fail(char * server);
-void kv739_recover(char * server);
-int kv739_put(char * key, char * value, char * old_value);
-int kv739_get(char * key, char * value);
-
-
-/*
+    /*
  * Operation header block
  */
 typedef struct {
-  unsigned long time;
-  int id;
-  int type;
-  int data;
+  unsigned long long time;
+  unsigned long long id;
+  unsigned long long type;
+  unsigned long long data;
 } header;
 
 /*
@@ -42,21 +38,24 @@ void init(header head, int fd) {
   }
   char *arr[head.data];
   for (i = 0; i < head.data; i++) {
-    arr[i] = &list[i];
+    printf("init %s", &lst[i]);
+    arr[i] = &lst[i];
   }
-  kv739_init(arr);
+  //kv739_init(arr);
 }
 
 void fail(header head, int fd) {
   char name[255];
   read(fd, &name, 255);
-  kv739_fail(&name);
+  //kv739_fail(&name);
+  printf("fail %s", &name);
 }
 
 void recover(header head, int fd) {
   char name[255];
   read(fd, &name, 255);
-  kv739_fail(&name);
+  //kv739_fail(&name);
+  printf("recover %s", &name);
 }
 
 void get(header head, int fd) { 
@@ -65,8 +64,10 @@ void get(header head, int fd) {
   int rcode;
 
   read(fd, &ke, 129);
+
+  printf("GET [%s]", &ke);
   
-  rcode = kv739_get(&ke, &val);
+  // rcode = kv739_get(&ke, &val);
   
   // do something with rcode and value
 }
@@ -80,7 +81,9 @@ void put(header head, int fd) {
   read(fd, &ke, 129);
   read(fd, &val, head.data);
 
-  rcode = kv739_put(&ke, &val, &oldval);
+  printf("PUT [%s] [%s]", &ke, &val);
+
+  //rcode = kv739_put(&ke, &val, &oldval);
 
   // do something with rcode and old val
 
@@ -111,4 +114,8 @@ void loop_stdin() {
       break;
   }
   
+}
+
+int main(int argc, char** argv) {
+  return 0;
 }
