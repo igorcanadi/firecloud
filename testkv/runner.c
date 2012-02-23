@@ -1,8 +1,10 @@
 
+#include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
+#include <errno.h>
 
-#define END -1
+#define END 99
 #define INIT 0
 #define FAIL 1
 #define RECOVER 2
@@ -28,42 +30,42 @@ typedef struct {
 } hostport;
 
 
-void init(header head, int fd) {
+void init(header head) {
   // read N host names
   char lst[head.data][255];
   int i;
 
   for (i = 0; i < head.data; i++) {
-    read(fd, &lst[i], 255);
+    fread(&lst[i], 1, 255, stdin);
   }
   char *arr[head.data];
   for (i = 0; i < head.data; i++) {
-    printf("init %s", &lst[i]);
+    printf("init %s\n", &lst[i]);
     arr[i] = &lst[i];
   }
   //kv739_init(arr);
 }
 
-void fail(header head, int fd) {
+void fail(header head) {
   char name[255];
-  read(fd, &name, 255);
+  fread(&name, 1, 255, stdin);
   //kv739_fail(&name);
   printf("fail %s", &name);
 }
 
-void recover(header head, int fd) {
+void recover(header head) {
   char name[255];
-  read(fd, &name, 255);
+  fread(&name, 1, 255, stdin);
   //kv739_fail(&name);
   printf("recover %s", &name);
 }
 
-void get(header head, int fd) { 
+void get(header head) { 
   char ke[129];
   char val[2049];
   int rcode;
 
-  read(fd, &ke, 129);
+  fread(&ke, 1, 129, stdin);
 
   printf("GET [%s]", &ke);
   
@@ -72,14 +74,14 @@ void get(header head, int fd) {
   // do something with rcode and value
 }
 
-void put(header head, int fd) { 
+void put(header head) { 
   char ke[129];
   char val[2049];
   char oldval[2049];
   int rcode;
 
-  read(fd, &ke, 129);
-  read(fd, &val, head.data);
+  fread(&ke, 1, 129, stdin);
+  fread(&val, 1, head.data, stdin);
 
   printf("PUT [%s] [%s]", &ke, &val);
 
@@ -92,30 +94,45 @@ void put(header head, int fd) {
 
 void loop_stdin() {
   
-  
   header head;
-
-  read(stdin, head, sizeof(header));
-
-  switch (head.type) {
-    case END:
-      return;
-    case INIT:
+  int rval;
+  while (1) {
+    printf("Doing loop\n");
+    rval = fread(&head, 1, sizeof(head), stdin);
+    printf("read %d bytes\n", rval);
+    if (rval < 1) {
+      printf("read returned %d\n", rval);
+      printf("errno %d", errno);
       break;
-    case FAIL:
-      break;
-    case RECOVER:
-      break;
-    case GET:
-      break;
-    case PUT:
-      break;
-    default:
-      break;
-  }
+    }
+    
+    printf("switching #%d: type %u, data: %u\n", head.id, head.type, head.data);
+    switch (head.type) {
+      case END:
+        return;
+      case INIT:
+        init(head);
+        break;
+      case FAIL:
+        fail(head);
+        break;
+      case RECOVER:
+        recover(head);
+        break;
+      case GET:
+        get(head);
+        break;
+      case PUT:
+        put(head);
+        break;
+      default:
+        break;
+    };
+    }
   
 }
 
 int main(int argc, char** argv) {
-  return 0;
+  printf("Working.\n");
+  loop_stdin();
 }

@@ -1,10 +1,7 @@
 from collections import namedtuple
 
-
-PutEvent = namedtuple('Put', ['k', 'v', 'oldv'])
-GetEvent = namedtuple('Get', ['k', 'v'])
-NetKillEvent = namedtuple('NetKill', ['host0', 'host1'])
-NetUpEvent = namedtuple('NetUp', ['host0', 'host1'])
+from transcribe import PutEvent, GetEvent, NetKillEvent, NetUpEvent, \
+                       HostKill, HostUp
 
 
 class Server(object):
@@ -12,15 +9,26 @@ class Server(object):
     self.host = host
     self.port = port
 
+  def fail(self):
+    self.xcript.record(HostKill(self.host, self.port))
+
+  def recover(self):
+    self.xcript.record(HostUp(self.host, self.port))
+  
+  def __str__(self):
+    return '{0.host}:{0.port}'.format(self)
+
 
 class System(object):
   def __init__(self, clock, nodes):
     self.nodes = nodes
     self.clock = clock
     self.xcript = Transcript(clock)
+    for n in nodes:
+      n.xcript = self.xcript
     self.network = Network(nodes, self.xcript)
-    self.store = KVStore(self.xscript)
-    self.status = Fasle
+    self.store = KVStore(self.xcript)
+    self.status = False
 
 
 class Clock(object):
@@ -37,8 +45,8 @@ class Transcript(object):
     self.clock = clock
     self.log = []
 
-  def record(event):
-    self.log.append((clock.tick(), event))
+  def record(self, event):
+    self.log.append((self.clock.tick(), event))
 
 
 class Network(object):
@@ -51,7 +59,7 @@ class Network(object):
         if a == b:
           continue
 
-  def __setitem__(self, (a, b), val)
+  def __setitem__(self, (a, b), val):
     if b < a:
       t = a
       a = b
@@ -60,7 +68,7 @@ class Network(object):
       self.xcript.record(NetUpEvent(a, b))
     else:
       self.xcript.record(NetKillEvent(a, b))
-    edges[(a, b)] = False
+    self.edges[(a, b)] = False
 
   def __getitem__(self, (a, b)):
     if b < a:
@@ -83,16 +91,16 @@ class KVStore(object):
     assert '[' not in name
     assert ']' not in name
     if name in self.store:  
-      self.xcript.record(PutEvent(name, val, self.store[name]))
+      self.xcript.record(PutEvent(name, val))
     else:
-      self.xcript.record(PutEvent(name, val, None))
+      self.xcript.record(PutEvent(name, val))
     self.store[name] = val
 
   def __getitem__(self, name):
     if name in self.store:  
-      self.xcript.record(GetEvent(name, self.store[name]))
+      self.xcript.record(GetEvent(name))
     else:
-      self.xcript.record(GetEvent(name, None))
+      self.xcript.record(GetEvent(name))
     return self.store[name]
 
   def keys(self):
