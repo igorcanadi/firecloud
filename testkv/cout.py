@@ -2,6 +2,9 @@
 from struct import pack
 from collections import namedtuple
 from subprocess import Popen, PIPE, STDOUT
+import time as time_
+from conf import SYNC_WINDOW 
+from threading import Thread
 
 """
 void kv739_init(char *servers[]) - provide a null-terminated list of servers in the format "host:port" and initialize the client code. Returns 0 on success and -1 on failure.
@@ -61,6 +64,23 @@ class Buffer_(object):
     self.buf = self.buf + msg
 
 
+class ClientThread(Thread):
+  def __init__(self, tups):
+    super(ClientThread, self).__init__()
+    self.tups = tups
+    self.log = None
+    self.slack = None
+
+  def run(self):
+    print 'Starting'
+    start = time_.time()
+    self.log, self.slack = run_transcript(self.tups)
+    self.runtime = time_.time() - start
+    print 'Stopped'
+
+
+
+
 def write_out(time, seq, itm, out):
   data = 0
   if type(itm) == Put:
@@ -68,7 +88,8 @@ def write_out(time, seq, itm, out):
   elif type(itm) == Init:
     print 'Doing init -------------'
     data = len(itm.servers)
-
+    time = int(time_.time() * 1000) + SYNC_WINDOW
+  print "Seq #%s scheduled for %s" % (seq, time)
   head = pack(HEADER, time, seq, codes[type(itm)], data)
   print 'Built header for: ', codes[type(itm)]
   out(head)
@@ -96,15 +117,36 @@ def write_out(time, seq, itm, out):
 def run_transcript(tups):
   buf = Buffer_()
   for ti, tick, evt in tups:
-    write_out(ti, tick, evt, buf.write)
-  write_out(ti+1, tick+1, None, buf.write)
+    write_out(int(ti), tick, evt, buf.write)
   p = Popen(['./runner'], stdin=PIPE, stderr=STDOUT, stdout=PIPE)
   print 'writing to the proc'
   print 'writing %d bytes' % len(buf.buf)
   print 'raw data:', buf.buf
   out, err = p.communicate(input=buf.buf)
-  print out, err
-  
+  print 'raw output: ', out
+  return reconstruct(out, tups)
+
+
+def reconstruct(text, tups):
+  tickmap = dict([(tick, evt) for ti, tick, evt in tups])
+  construct = []
+  usec_slack = 0
+  for line in text.split('\n'):
+    if len(line) == 0:
+      continue
+    print 'processing: ', line
+    i = line.index(' ')
+    tick, txt = line[0:i], line[i+1:]
+    tick = int(tick)
+    if tick == -1:
+      # THere was an error
+      raise Exception(txt)
+    elif tick == -2:
+      usec_slack += int(txt)
+    else:
+      construct.append((tickmap[tick], txt))
+  print '*** Slack time: {0:.3f} msec'.format(usec_slack/1000)
+  return construct, usec_slack/ (1000.0 * 1000.0)
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )
 

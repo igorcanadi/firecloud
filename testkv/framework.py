@@ -1,13 +1,15 @@
 from collections import namedtuple
-
+from cout import Init
 from transcribe import PutEvent, GetEvent, NetKillEvent, NetUpEvent, \
-                       HostKill, HostUp
+                       HostKill, HostUp, FailEvent, RecoverEvent
+from conf import CLOCK_RATE, PRE_NETWORK_WINDOW, POST_NETWORK_WINDOW
 
 
 class Server(object):
-  def __init__(self, host, port):
+  def __init__(self, xcript, host, port):
     self.host = host
     self.port = port
+    self.xcript = xcript
 
   def fail(self):
     self.xcript.record(HostKill(self.host, self.port))
@@ -19,24 +21,27 @@ class Server(object):
     return '{0.host}:{0.port}'.format(self)
 
 
-class System(object):
+class Client(object):
   def __init__(self, clock, nodes):
-    self.nodes = nodes
     self.clock = clock
     self.xcript = Transcript(clock)
-    for n in nodes:
-      n.xcript = self.xcript
-    self.network = Network(nodes, self.xcript)
+    self.nodes = nodes
     self.store = KVStore(self.xcript)
-    self.status = False
+    self.xcript.record(Init(map(str, nodes)))
+
+  def fail(self, node):
+    self.xcript.record(FailEvent(node.host, node.port))
+
+  def recover(self, node):
+    self.xcript.record(RecoverEvent(node.host, node.port))
 
 
 class Clock(object):
   def __init__(self):
     self.time = 0
 
-  def tick(self):
-    self.time += 1
+  def tick(self, ticks=1):
+    self.time += ticks
     return self.time
 
 
@@ -64,10 +69,12 @@ class Network(object):
       t = a
       a = b
       b = a
+    self.xcript.clock.tick(round(PRE_NETWORK_WINDOW / CLOCK_RATE))
     if val:
       self.xcript.record(NetUpEvent(a, b))
     else:
       self.xcript.record(NetKillEvent(a, b))
+    self.xcript.clock.tick(round(POST_NETWORK_WINDOW / CLOCK_RATE))
     self.edges[(a, b)] = False
 
   def __getitem__(self, (a, b)):

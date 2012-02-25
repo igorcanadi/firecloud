@@ -1,4 +1,5 @@
 
+#include <sys/time.h>
 #include <unistd.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -10,6 +11,15 @@
 #define RECOVER 2
 #define GET 3
 #define PUT 4
+
+int sleep_until(unsigned long);
+unsigned long current_msec();
+unsigned long start_time;
+unsigned long current_usec();
+
+#define CURRENT_USEC current_usec()
+#define usec_to_msec(x)  (x) / 1000
+#define CURRENT_MSEC usec_to_msec(CURRENT_USEC)
 
 
     /*
@@ -40,7 +50,7 @@ void init(header head) {
   }
   char *arr[head.data];
   for (i = 0; i < head.data; i++) {
-    printf("init %s\n", &lst[i]);
+    //printf("init %s\n", &lst[i]);
     arr[i] = &lst[i];
   }
   //kv739_init(arr);
@@ -50,14 +60,14 @@ void fail(header head) {
   char name[255];
   fread(&name, 1, 255, stdin);
   //kv739_fail(&name);
-  printf("fail %s", &name);
+  //printf("fail %s", &name);
 }
 
 void recover(header head) {
   char name[255];
   fread(&name, 1, 255, stdin);
   //kv739_fail(&name);
-  printf("recover %s", &name);
+  //printf("recover %s", &name);
 }
 
 void get(header head) { 
@@ -67,7 +77,7 @@ void get(header head) {
 
   fread(&ke, 1, 129, stdin);
 
-  printf("GET [%s]", &ke);
+  printf("%d %ld GET [%s]\n", head.id, CURRENT_MSEC, &ke);
   
   // rcode = kv739_get(&ke, &val);
   
@@ -83,13 +93,19 @@ void put(header head) {
   fread(&ke, 1, 129, stdin);
   fread(&val, 1, head.data, stdin);
 
-  printf("PUT [%s] [%s]", &ke, &val);
+  printf("%d %ld PUT [%s] [%s]\n",  head.id, CURRENT_USEC, &ke, &val);
 
   //rcode = kv739_put(&ke, &val, &oldval);
 
   // do something with rcode and old val
+}
 
-
+void wait_until_start() {
+  if (start_time <= current_msec()) {
+    printf("-1 ERROR: transcript stale by %ldus\n", start_time - CURRENT_USEC);
+    exit(1);
+  }
+  usleep(start_time - CURRENT_USEC);
 }
 
 void loop_stdin() {
@@ -97,16 +113,32 @@ void loop_stdin() {
   header head;
   int rval;
   while (1) {
-    printf("Doing loop\n");
+    //printf("Doing loop\n");
     rval = fread(&head, 1, sizeof(head), stdin);
-    printf("read %d bytes\n", rval);
+    //printf("read %d bytes\n", rval);
     if (rval < 1) {
-      printf("read returned %d\n", rval);
-      printf("errno %d", errno);
+      //printf("read returned %d\n", rval);
+      //printf("errno %d", errno);
+      printf("-1 pipe read error\n");
       break;
     }
+     
+    //printf("Seq #%d scheduled for %u\n", head.id, head.time);
     
-    printf("switching #%d: type %u, data: %u\n", head.id, head.type, head.data);
+    if (head.type == INIT) {
+      start_time = head.time * 1000;
+      wait_until_start();
+    } else {
+      int offby = sleep_until(head.time);
+      if (offby > 10000) {
+        /* We're way behind shceudle, fail. */
+        printf("-1 ERROR: #%d Behind schedule %d us\n", head.id, offby);
+        exit(1);
+      }
+    }
+    
+    
+    //printf("switching #%d: type %u, data: %u\n", head.id, head.type, head.data);
     switch (head.type) {
       case END:
         return;
@@ -132,7 +164,47 @@ void loop_stdin() {
   
 }
 
+unsigned long current_usec() {
+  struct timeval tval;
+  gettimeofday(&tval, NULL);
+  double nao = tval.tv_sec;
+  unsigned long msec = tval.tv_usec;
+  unsigned long secmsec = tval.tv_sec * 1000 * 1000;
+  return secmsec + msec;
+}
+
+unsigned long current_msec() {
+  return CURRENT_MSEC;
+}
+
+// sleep until a given msec
+int sleep_until(unsigned long time) {
+  // time is in msec so conver to usec
+  time = time * 1000;
+  unsigned long nao = CURRENT_USEC;
+  // internal fudge factor to allow for slight
+  // internal delay in this file
+  unsigned long offset = nao - start_time;
+  if (offset > time) {
+    /* this time has passed. too late */
+    //printf("Too Late! %ld > %ld\n", offset, time);
+    printf("-2 %d\n", time - offset);
+    return offset - time;
+  }
+  /* to sleep: */
+  unsigned long sleepusec = time - offset;
+  /* print slack time */
+  if (sleepusec > 20000 * 1000) {
+    printf("-1 ERROR: Sleeping WAAAY too long.\n");
+    exit(1);
+  }
+  printf("-2 %d\n", sleepusec);
+  usleep(sleepusec);
+  return 0;
+}
+
+
 int main(int argc, char** argv) {
-  printf("Working.\n");
+  //printf("Working.\n");
   loop_stdin();
 }

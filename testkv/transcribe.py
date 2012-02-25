@@ -8,7 +8,8 @@ C library to execute
 
 from collections import namedtuple
 from time import time
-from cout import run_transcript, Init, Recover, Fail, Get, Put
+from cout import run_transcript, Init, Recover, Fail, Get, Put, \
+                 ClientThread
 
 
 PutEvent = namedtuple('Put', ['k', 'v'])
@@ -17,9 +18,17 @@ NetKillEvent = namedtuple('NetKill', ['host0', 'host1'])
 NetUpEvent = namedtuple('NetUp', ['host0', 'host1'])
 HostKill = namedtuple('HostKill', ['host', 'port'])
 HostUp = namedtuple('HostKill', ['host', 'port'])
+FailEvent = namedtuple('Fail', ['host', 'port'])
+RecoverEvent = namedtuple('Recover', ['host', 'port'])
 
 
-COMMON_DELAY = 1000
+COMMON_DELAY = 100
+
+INIT_DELAY = 200
+PRE_NETWORK = 100
+POST_NETWORK = 100
+PRE_HOSTSTATE = 100
+POST_HOSTSTATE = 100
 
 
 def build_plan(sys, rate):
@@ -33,27 +42,24 @@ def build_plan(sys, rate):
   clog = []
   plan = []
   
-  #make the init
-  clog.append((ti, 0, Init(map(str, sys.nodes))))
-  ti += COMMON_DELAY * 2
 
   print "log length: ", len(sys.xcript.log)
+  msec_slack = 0
   for tick, evt in sys.xcript.log:
+    if (tick - last_tick) > 1:
+      # we have slack time
+      msec_slack += rate * (tick - last_tick - 1)
     ti += (tick - last_tick) * rate
     last_tick = tick
     
-    if isinstance(evt, HostKill):
+    if isinstance(evt, Init):
+      clog.append((ti, tick, evt))
+    elif isinstance(evt, FailEvent):
       f = Fail('{0.host!s}:{0.port!s}'.format(evt))
-      ti += COMMON_DELAY
       clog.append((ti, tick, f))
-      plan.append((ti, evt))
-      ti += COMMON_DELAY
-    elif isinstance(evt, HostUp):
+    elif isinstance(evt, RecoverEvent):
       e = Recover('{0.host!s}:{0.port!s}'.format(evt))
-      ti += COMMON_DELAY
       clog.append((ti, tick, e))
-      plan.append((ti, evt))
-      ti += COMMON_DELAY
     elif isinstance(evt, PutEvent):
       e = Put(evt.k, evt.v)
       clog.append((ti, tick, e))
@@ -62,10 +68,10 @@ def build_plan(sys, rate):
       clog.append((ti, tick, e))
     else:
       # we always buffer events in the plan
-      ti += COMMON_DELAY
       plan.append( (ti, evt) )
-      ti += COMMON_DELAY
-  return clog, plan
+  # Add the termination step
+  clog.append( (ti + rate, tick+1, None) )
+  return ClientThread(clog), plan, msec_slack / 1000.0
     
   
 
