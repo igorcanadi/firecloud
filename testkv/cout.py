@@ -6,6 +6,15 @@ import time as time_
 from conf import SYNC_WINDOW 
 from threading import Thread
 
+
+class ClientTrace(object):
+  def __init__(self, trace, slack):
+    self.slack = slack
+    self.trace = trace
+
+  def __iter__(self):
+    return self.trace.__iter__()
+
 """
 void kv739_init(char *servers[]) - provide a null-terminated list of servers in the format "host:port" and initialize the client code. Returns 0 on success and -1 on failure.
 void kv739_fail(char * server) - indicate that the server "host:port" has failed and the client should not attempt to contact it. This is a simple way to partition clients from servers.
@@ -72,11 +81,9 @@ class ClientThread(Thread):
     self.slack = None
 
   def run(self):
-    print 'Starting'
     start = time_.time()
-    self.log, self.slack = run_transcript(self.tups)
+    self.ctrace = fake_run_transcript(self.tups)
     self.runtime = time_.time() - start
-    print 'Stopped'
 
 
 
@@ -123,8 +130,24 @@ def run_transcript(tups):
   print 'writing %d bytes' % len(buf.buf)
   print 'raw data:', buf.buf
   out, err = p.communicate(input=buf.buf)
-  print 'raw output: ', out
   return reconstruct(out, tups)
+
+def fake_run_transcript(tups):
+  d = {}
+  l = []
+  for ti, tick, evt in tups:
+    if isinstance(evt, Get):
+      oldv = ''
+      if evt.ke in d:
+        oldv = d[evt.ke]
+      l.append( (tick, ti, evt, '['+str(oldv)+ ']') )
+    elif isinstance(evt, Put):
+      oldv = ''
+      if evt.ke in d:
+        oldv = d[evt.ke]
+      d[evt.ke] = evt.val
+      l.append( (tick, ti, evt, '['+str(oldv)+ ']' ) )
+  return ClientTrace(l, 0)
 
 
 def reconstruct(text, tups):
@@ -134,7 +157,6 @@ def reconstruct(text, tups):
   for line in text.split('\n'):
     if len(line) == 0:
       continue
-    print 'processing: ', line
     i = line.index(' ')
     tick, txt = line[0:i], line[i+1:]
     tick = int(tick)
@@ -144,9 +166,11 @@ def reconstruct(text, tups):
     elif tick == -2:
       usec_slack += int(txt)
     else:
-      construct.append((tickmap[tick], txt))
-  print '*** Slack time: {0:.3f} msec'.format(usec_slack/1000)
-  return construct, usec_slack/ (1000.0 * 1000.0)
+      i = txt.index(' ')
+      msec, txt= txt[0:i], txt[i+1:]
+      msec = int(msec) / 1000.0
+      construct.append((tick, msec, tickmap[tick], txt))
+  return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0))
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )
 

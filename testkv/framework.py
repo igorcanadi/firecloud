@@ -108,6 +108,7 @@ class KVStore(object):
       self.xcript.record(GetEvent(name))
     else:
       self.xcript.record(GetEvent(name))
+      return None
     return self.store[name]
 
   def keys(self):
