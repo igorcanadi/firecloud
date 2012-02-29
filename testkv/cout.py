@@ -1,5 +1,19 @@
 
 from struct import pack
+from collections import namedtuple
+from subprocess import Popen, PIPE, STDOUT
+import time as time_
+from conf import SYNC_WINDOW 
+from threading import Thread
+
+
+class ClientTrace(object):
+  def __init__(self, trace, slack):
+    self.slack = slack
+    self.trace = trace
+
+  def __iter__(self):
+    return self.trace.__iter__()
 
 """
 void kv739_init(char *servers[]) - provide a null-terminated list of servers in the format "host:port" and initialize the client code. Returns 0 on success and -1 on failure.
@@ -9,43 +23,82 @@ int kv739_get(char * key, char * value) - retrieve the value corresponding to th
 int kv739_put(char * key, char * value, char * old_value) - Perform a get operation on the current value into old_value and then store the specified value. Should return 0 on success if there is an old value, 1 on success if there was no old value, and -1 on failure. The old_value parameter must be at least one byte larger than the maximum value size.
 """
 
+"""
 void kv739_init(char *servers[])
 void kv739_fail(char * server)
 void kv739_recover(char * server)
 int kv739_put(char * key, char * value, char * old_value)
 int kv739_get(char * key, char * value)
+"""
 
 
 Init = namedtuple('Init', 'servers')
 Recover = namedtuple('Recover', 'serv')
 Fail = namedtuple('Fail', 'serv')
-Put = namedtuple('Put', 'ke', 'val')
+Put = namedtuple('Put', ['ke', 'val'])
 Get = namedtuple('Get', 'ke')
-Sleep = namedtuple('Sleep', 'msec')
 
+codes = {
+  Init : 0,
+  Recover : 2,
+  Fail : 1,
+  Get : 3,
+  Put : 4,
+  type(None): 99
+    }
 
 #
 # Packings
 #
 
 
-HEADER = 'QQQ'
+HEADER = 'QQQQ'
 
 
 def pad(st):
   while len(st) < 254:
-    ke += '\0'
+    st += '\0'
+  return st
 
 def pad_key(ke):
   while len(ke) < 128:
-    ke += '\0'
+    ke = ke + '\0'
+  return ke
+
+class Buffer_(object):
+  def __init__(self):
+    self.buf = ''
+
+  def write(self, msg):
+    self.buf = self.buf + msg
+
+
+class ClientThread(Thread):
+  def __init__(self, tups):
+    super(ClientThread, self).__init__()
+    self.tups = tups
+    self.log = None
+    self.slack = None
+
+  def run(self):
+    start = time_.time()
+    self.ctrace = fake_run_transcript(self.tups)
+    self.runtime = time_.time() - start
+
+
 
 
 def write_out(time, seq, itm, out):
   data = 0
-  if type(out) == Put:
-    data = len(out.val) + 1 # for the null
-  head = pack(HEADER, time, seq, data)
+  if type(itm) == Put:
+    data = len(itm.val) + 1 # for the null
+  elif type(itm) == Init:
+    print 'Doing init -------------'
+    data = len(itm.servers)
+    time = int(time_.time() * 1000) + SYNC_WINDOW
+  print "Seq #%s scheduled for %s" % (seq, time)
+  head = pack(HEADER, time, seq, codes[type(itm)], data)
+  print 'Built header for: ', codes[type(itm)]
   out(head)
   
   if type(itm) == Init:
@@ -68,4 +121,56 @@ def write_out(time, seq, itm, out):
     out('\0')
 
 
+def run_transcript(tups):
+  buf = Buffer_()
+  for ti, tick, evt in tups:
+    write_out(int(ti), tick, evt, buf.write)
+  p = Popen(['./runner'], stdin=PIPE, stderr=STDOUT, stdout=PIPE)
+  print 'writing to the proc'
+  print 'writing %d bytes' % len(buf.buf)
+  print 'raw data:', buf.buf
+  out, err = p.communicate(input=buf.buf)
+  return reconstruct(out, tups)
+
+def fake_run_transcript(tups):
+  d = {}
+  l = []
+  for ti, tick, evt in tups:
+    if isinstance(evt, Get):
+      oldv = ''
+      if evt.ke in d:
+        oldv = d[evt.ke]
+      l.append( (tick, ti, evt, '['+str(oldv)+ ']') )
+    elif isinstance(evt, Put):
+      oldv = ''
+      if evt.ke in d:
+        oldv = d[evt.ke]
+      d[evt.ke] = evt.val
+      l.append( (tick, ti, evt, '['+str(oldv)+ ']' ) )
+  return ClientTrace(l, 0)
+
+
+def reconstruct(text, tups):
+  tickmap = dict([(tick, evt) for ti, tick, evt in tups])
+  construct = []
+  usec_slack = 0
+  for line in text.split('\n'):
+    if len(line) == 0:
+      continue
+    i = line.index(' ')
+    tick, txt = line[0:i], line[i+1:]
+    tick = int(tick)
+    if tick == -1:
+      # THere was an error
+      raise Exception(txt)
+    elif tick == -2:
+      usec_slack += int(txt)
+    else:
+      i = txt.index(' ')
+      msec, txt= txt[0:i], txt[i+1:]
+      msec = int(msec) / 1000.0
+      construct.append((tick, msec, tickmap[tick], txt))
+  return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0))
+
+#run_transcript( [(0, 0, Init(['localhost:8080']))] )
 

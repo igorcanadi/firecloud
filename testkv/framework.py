@@ -1,34 +1,47 @@
 from collections import namedtuple
-
-
-PutEvent = namedtuple('Put', ['k', 'v', 'oldv'])
-GetEvent = namedtuple('Get', ['k', 'v'])
-NetKillEvent = namedtuple('NetKill', ['host0', 'host1'])
-NetUpEvent = namedtuple('NetUp', ['host0', 'host1'])
+from cout import Init
+from transcribe import PutEvent, GetEvent, NetKillEvent, NetUpEvent, \
+                       HostKill, HostUp, FailEvent, RecoverEvent
+from conf import CLOCK_RATE, PRE_NETWORK_WINDOW, POST_NETWORK_WINDOW
 
 
 class Server(object):
-  def __init__(self, host, port):
+  def __init__(self, xcript, host, port):
     self.host = host
     self.port = port
+    self.xcript = xcript
+
+  def fail(self):
+    self.xcript.record(HostKill(self.host, self.port))
+
+  def recover(self):
+    self.xcript.record(HostUp(self.host, self.port))
+  
+  def __str__(self):
+    return '{0.host}:{0.port}'.format(self)
 
 
-class System(object):
+class Client(object):
   def __init__(self, clock, nodes):
-    self.nodes = nodes
     self.clock = clock
     self.xcript = Transcript(clock)
-    self.network = Network(nodes, self.xcript)
-    self.store = KVStore(self.xscript)
-    self.status = Fasle
+    self.nodes = nodes
+    self.store = KVStore(self.xcript)
+    self.xcript.record(Init(map(str, nodes)))
+
+  def fail(self, node):
+    self.xcript.record(FailEvent(node.host, node.port))
+
+  def recover(self, node):
+    self.xcript.record(RecoverEvent(node.host, node.port))
 
 
 class Clock(object):
   def __init__(self):
     self.time = 0
 
-  def tick(self):
-    self.time += 1
+  def tick(self, ticks=1):
+    self.time += ticks
     return self.time
 
 
@@ -37,8 +50,8 @@ class Transcript(object):
     self.clock = clock
     self.log = []
 
-  def record(event):
-    self.log.append((clock.tick(), event))
+  def record(self, event):
+    self.log.append((self.clock.tick(), event))
 
 
 class Network(object):
@@ -51,16 +64,18 @@ class Network(object):
         if a == b:
           continue
 
-  def __setitem__(self, (a, b), val)
+  def __setitem__(self, (a, b), val):
     if b < a:
       t = a
       a = b
       b = a
+    self.xcript.clock.tick(round(PRE_NETWORK_WINDOW / CLOCK_RATE))
     if val:
       self.xcript.record(NetUpEvent(a, b))
     else:
       self.xcript.record(NetKillEvent(a, b))
-    edges[(a, b)] = False
+    self.xcript.clock.tick(round(POST_NETWORK_WINDOW / CLOCK_RATE))
+    self.edges[(a, b)] = False
 
   def __getitem__(self, (a, b)):
     if b < a:
@@ -83,16 +98,17 @@ class KVStore(object):
     assert '[' not in name
     assert ']' not in name
     if name in self.store:  
-      self.xcript.record(PutEvent(name, val, self.store[name]))
+      self.xcript.record(PutEvent(name, val))
     else:
-      self.xcript.record(PutEvent(name, val, None))
+      self.xcript.record(PutEvent(name, val))
     self.store[name] = val
 
   def __getitem__(self, name):
     if name in self.store:  
-      self.xcript.record(GetEvent(name, self.store[name]))
+      self.xcript.record(GetEvent(name))
     else:
-      self.xcript.record(GetEvent(name, None))
+      self.xcript.record(GetEvent(name))
+      return None
     return self.store[name]
 
   def keys(self):
