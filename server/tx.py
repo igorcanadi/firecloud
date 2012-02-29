@@ -4,18 +4,20 @@ DEAD = 2
 
 class Tx(object):
   def __init__(self, pkt):
-    self.pkt = pkt;
+    self.pkt = pkt
     self.acks = 0
     self.state = UNCOMMITED
+
   def commit(self):
     if self.state != UNCOMMITED:
       return
     db.put(pkt);
+
   def ack(self, master):
     self.acks += 2 if master else 
 
     if self.acks >= 3:
-      self.commit();
+      self.commit()
     if self.acks == 5:
       self.state = DEAD
 
