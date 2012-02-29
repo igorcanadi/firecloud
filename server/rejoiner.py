@@ -6,4 +6,6 @@ class Rejoiner(object):
     self.db = db
 
   def recv(self, pkt):
-    pass
+    def __():
+      for (self.db.db.keys()
+    self.network.flood_stream(self.db.db.keys())
