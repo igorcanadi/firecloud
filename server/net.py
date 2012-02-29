@@ -1,6 +1,13 @@
 import cPickle as pickle
 import socket
+from collections import namedtuple
 
+Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig'])
+
+TYPE_ACK = 'A'
+TYPE_REJOIN = 'R'
+TYPE_PUT = 'P'
+TYPE_GET = 'G'
 
 def Network(object):
   def __init__(self, addrs, me, master, dispatch):

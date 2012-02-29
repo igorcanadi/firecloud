@@ -10,6 +10,6 @@ class Rejoiner(object):
       for ent in self.db.db.items():
         pkt = Packet(ent, None, TYPE_ACK, None)
         yield pkt
-
-    self.network.flood_stream(__)
+    for pkt in __():
+      self.network.flood(pkt)
 
