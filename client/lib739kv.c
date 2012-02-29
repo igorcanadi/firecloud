@@ -86,27 +86,21 @@ void kv739_recover(char *server) {
 
 // -1 on failure
 // 0 on ok
-int tcpip_send(int node_to_send_to, char *query, char *ret, int max_ret_size) {
+int udp_send(int node_to_send_to, char *query, char *ret, int max_ret_size) {
     int sck, retval = 0;
-    struct sockaddr_in serverAddress;
+    struct sockaddr_in *server = &server_addresses[node_to_send_to];
 
     // open the socket
-    sck = socket(AF_INET, SOCK_STREAM, 0);
+    sck = socket(AF_INET, SOCK_DGRAM, 0);
     if (sck < 0) {
         retval = -1;
     }
 
-    // connect to the server
-    if (retval != -1 && connect(sck, (struct sockaddr *) &server_addresses[node_to_send_to], sizeof(server_addresses[node_to_send_to])) < 0) {
+    if (retval != -1 && sendto(sck, query, strlen(query), 0, (struct sockaddr *)server, sizeof(*server)) != strlen(query)) {
         retval = -1;
     }
 
-
-    if (retval != -1 && send(sck, query, strlen(query), 0) != strlen(query)) {
-        retval = -1;
-    }
-
-    if (retval != -1 && recv(sck, ret, max_ret_size, 0) < 0) {
+    if (retval != -1 && recvfrom(sck, ret, max_ret_size, 0, NULL, NULL) < 0) {
         retval = -1;
     }
 
@@ -142,7 +136,7 @@ int send_query_string(char *query, char *value) {
         goto out;
     }
 
-    if (tcpip_send(node_to_send_to, query, return_buffer, MAX_RETURN_LEN) == -1) {
+    if (udp_send(node_to_send_to, query, return_buffer, MAX_RETURN_LEN) == -1) {
         retval = -1;
         goto out;
     }
@@ -213,7 +207,7 @@ int main() {
         s[i] = (char *)malloc(100);
     }
 
-    sprintf(s[0], "127.0.0.1:9999");
+    sprintf(s[0], "127.0.0.1:10000");
     sprintf(s[1], "");
 
     kv739_init(s);
