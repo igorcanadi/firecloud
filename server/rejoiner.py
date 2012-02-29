@@ -7,5 +7,9 @@ class Rejoiner(object):
 
   def recv(self, pkt):
     def __():
-      for (self.db.db.keys()
-    self.network.flood_stream(self.db.db.keys())
+      for ent in self.db.db.items():
+        pkt = Packet(ent, None, TYPE_ACK, None)
+        yield pkt
+
+    self.network.flood_stream(__)
+

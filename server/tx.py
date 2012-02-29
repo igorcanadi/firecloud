@@ -2,6 +2,7 @@ UNCOMMITED = 0
 COMMITTED = 1
 DEAD = 2
 
+
 class Tx(object):
   def __init__(self, pkt):
     self.pkt = pkt
@@ -20,6 +21,7 @@ class Tx(object):
       self.commit()
     if self.acks == 5:
       self.state = DEAD
+
 
 class ClientTx(object):
   def __init__(self, client, pkt):
