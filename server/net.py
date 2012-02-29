@@ -36,11 +36,28 @@ def Network(object):
 
     self.__flood(None, data)
 
+  def has_seen(self, pkt):
+    return pkt.entry.ts in self.seen
+
+  def see(self, pkt):
+    self.seen.add(pkt.entry.ts)
+
+  def dispatch(self, entry, t):
+    if t == 'A':
+      self.log.recvAck(p)
+    elif t == 'P':
+      self.log.recvPut(p)
+    elif t == 'G':
+      self.log.recvGet(p)
+    elif t == 'R':
+      self.log.recv(p)
+
   def poll(self):
     while True:
       (data, addr) = self.s.recvfrom()
       pkt = pickle.loads(data)
-      dispatch.recv(pkt)
-      
-      if not self.has_seen(pkt):
-        self.__flood(addr, data)
+      if self.has_seen(pkt) continue
+
+      self.see(pkt)
+      self.dispatch(pkt.entry, pkt.type)
+      self.__flood(addr, data)
