@@ -6,4 +6,10 @@ class Rejoiner(object):
     self.db = db
 
   def recv(self, pkt):
-    pass
+    def __():
+      for ent in self.db.db.items():
+        pkt = Packet(ent, None, TYPE_ACK, None)
+        yield pkt
+    for pkt in __():
+      self.network.flood(pkt)
+

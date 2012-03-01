@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-Entry = namedtuple('Entry', ['ts', 'val'])
+Entry = namedtuple('Entry', ['ts', 'val', 'tstamp'])
 
 class Datastore(object):
   def __init__(self):
@@ -41,4 +41,3 @@ class Datastore(object):
     if (ke not in self.db) or
        (self.db[ke].ts < val.ts):
       self.dv[ke] = val
-
