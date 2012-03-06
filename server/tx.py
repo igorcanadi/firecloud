@@ -1,6 +1,5 @@
 import time
 
-
 UNCOMMITED = 0
 ZOMBIE = 1
 DEAD = 3
@@ -8,13 +7,28 @@ DEAD = 3
 TIMEOUT = 2
 ZOMBIE_TIMEOUT = 3
 
+class Listener(object):
+  def __init__(self, db, opaque, sock, addr):
+    self.opaque = opaque
+    self.db = db
+    self.sock = sock
+    self.addr = addr
+  def commit(self, tx):
+    if tx.update is not None:
+      self.db.put(tx.update)
+    # send old (or current) value
+    print "sending to client:"
+    print "OK %s %s" % (tx.entry.val, self.opaque)
+    self.sock.sendto("OK [%s] [%s]" % (self.opaque, tx.entry.val), self.addr)
+
 class Tx(object):
-  def __init__(self, db, entry):
-    self.entry = entry
-    self.acks = set()
+  def __init__(self, net):
+    self.entry = None
+    self.acks = 0
     self.state = UNCOMMITED
     self.start = time.time()
-    self.has_master = 0
+    self.update = None
+    self.net = net
 
   def timed_out(self):
     return time.time() > self.start + TIMEOUT
@@ -23,44 +37,18 @@ class Tx(object):
     return time.time() > self.start + ZOMBIE_TIMEOUT
 
   def commit(self):
-    if self.state != UNCOMMITED:
-      return
-    db.put(pkt);
+    self.net.commit(self)
 
-  def ack(self, ack):
-    self.acks.add(ack)
+  def ack(self, entry, is_master):
+    print self, "acked"
+    if self.entry is None or entry.ts > self.entry.ts:
+      self.entry = entry
 
-    if len(self.acks) + self.has_master >= 3 and self.state == UNCOMMITED:
+    self.acks += 2 if is_master else 1
+
+    if self.acks >= 1 and self.state == UNCOMMITED:
       self.state = ZOMBIE
       self.commit()
 
-    if len(self.acks) + self.has_master == 5:
+    if self.acks == 5:
       self.state = DEAD
-
-  def send_res(self, val):
-    self.sock.sendto("OK [%s] [%s]" % (self.opaque, val), self.addr)
-
-class PutTx(Tx):
-  def __init__(self, db, entry, opaque, sock, addr):
-    Tx.__init__(self, db, entry)
-    self.addr = addr
-    self.sock = sock
-    self.opaque = opaque
-    self.entry = entry
-
-  def commit(self):
-    self.db.put(self.kv);
-    ack = reduce(lambda x,y: x if x.ts > y.ts else y, self.acks)
-    self.send_res(ack.val)
-    
-class GetTx(Tx):
-  def __init__(self, db, key, opaque, sock, addr):
-    Tx.__init__(self, db, key)
-    self.addr = addr
-    self.sock = sock
-    self.opaque = opaque
-    self.k = key
-
-  def commit(self):
-    ack = reduce(lambda x,y: x if x.ts > y.ts else y, self.acks)
-    self.send_res(ack.val)

@@ -11,6 +11,7 @@
 #include <unistd.h>
 #include <stdlib.h>
 #include <time.h>
+#include <stdbool.h>
 #include "lib739kv.h"
 #define MAX_SERVERS 4
 #define MAX_VALUE_LEN 2048

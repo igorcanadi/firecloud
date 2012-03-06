@@ -13,6 +13,9 @@ TYPE_PACK = 'A'
 TYPE_GET = 'G'
 TYPE_GACK = 'H'
 
+def ID(entry):
+  return (entry.key, entry.ts)
+
 def check(txs):
   while True:
     keys = txs.keys()
@@ -34,7 +37,8 @@ class Network(object):
     self.me = me
     self.db = db
     self.txs = {}
-    self.getTxs = {}
+    self.listeners = {}
+    self.seen = set()
     self.get = re.compile("GET (\[.*?\]) (\[.*?\])")
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
 
@@ -52,67 +56,84 @@ class Network(object):
     return Packet(entry, self.master, t, self.me)
 
   def flood(self, pkt):
-    pkt.orig = self.me
-    pkt.is_master = self.master
-    data = pickle.dumps(pkt)
-
-    self.__flood(None, data)
+    self.__flood(None, pickle.dumps(pkt))
 
   def has_seen(self, pkt):
-    return pkt.entry.ts in self.seen
+    return ID(pkt.entry) in self.seen
 
-  def see(self, pkt):
-    self.seen.add(pkt.entry.ts)
+  def commit(self, tx):
+    try:
+      self.listeners[ID(tx.entry)].commit(tx) 
+      del self.listeners[ID(tx.entry)]
+    except KeyError:
+      pass
+
+  def see(self, entry):
+    self.seen.add(ID(entry))
 
   def dispatch(self, entry, t, m):
     if t == TYPE_GACK:
       self.db.put(entry)
-      if entry.key in self.putTxs:
-        self.putTxs[(entry.key, entry.ts)].ack(entry)
+      # don't make a tx for it
+      try:
+        self.tx[ID(entry)].ack(entry)
+      except KeyError:
+        pass
+
     elif t == TYPE_GET:
-      self.flood(self.make_ack(TYPE_GACK, db[entry.key]))
+      self.flood(self.make_ack(TYPE_GACK, self.db[entry.key]))
     elif t == TYPE_PUT:
       try:
-        t = self.txs[(entry.key, entry.ts)]
-        t.entry = entry
+        t = self.txs[ID(entry)]
       except KeyError:
-        t = Tx(self.db, entry)
+        t = tx.Tx(self)
         self.txs[(entry.key, entry.ts)] = t
 
-      a = self.make_ack(TYPE_PACK, db[(entry.key, entry.ts)])
-      t.ack(a.entry)
-      if self.is_master:
-        t.has_master = 1
+      t.update = entry
+      t.ack(entry, self.master)
+      self.flood(self.make_ack(TYPE_PACK, self.db[ID(entry)]))
 
-      self.flood(a)
     elif t == TYPE_PACK:
       try:
-        t = self.txs[(entry.key, entry.ts)]
+        t = self.txs[ID(entry)]
       except KeyError:
-        t = Tx(self.db, None)
-        self.txs[(entry.key, entry.ts)] = t
-      t.ack(entry)
-      if m:
-        t.has_master = 1
+        t = tx.Tx(self)
+        self.txs[ID(entry)] = t
+
+      t.ack(entry, m)
 
   def clientDispatch(self, data, addr):
+    print data
     if data[0] == 'G':
       m = self.get.match(data)
-      opaque = m.group(0)
       key = m.group(1)
-      t = tx.GetTx(db, key, opaque, self.s, addr)
-      self.getTxs[key] = t
+      opaque = m.group(2)
+      value = None
+      type = TYPE_GET
     else:
       m = self.put.match(data)
-      opaque = m.group(0)
       key = m.group(1)
       value = m.group(2)
-      self.txs[key] = tx.PutTx(self.db, db.Entry(key, value, time.time()), opaque, self.s, addr)
+      opaque = m.group(3)
+      type = TYPE_PUT
+
+    ti = time.time()
+    e = db.Entry(key, ti, value if type == TYPE_PUT else self.db[key].val)
+    self.listeners[(key, ti)] = tx.Listener(self.db, opaque, self.s, addr)
+    if type == TYPE_GET:
+      t = tx.Tx(self)
+      self.txs[(key, ti)] = t
+      t.ack(e, self.master)
+
+    print self.db[key]
+    pkt = pickle.dumps(Packet(e, self.master, type, self.me))
+    self.s.sendto(pkt, self.me)
 
   def poll(self):
     while True:
       zombie = next(self.next_zombie)
       if zombie is not None:
+        self.flood(Packet(zombie.entry, self.master, type, self.me))
         self.rebroadcast(zombie)
 
 
@@ -125,6 +146,7 @@ class Network(object):
         if self.has_seen(pkt): 
           continue
 
-        self.see(pkt)
-        self.dispatch(pkt.entry, pkt.type)
+        print pkt
+        self.see(pkt.entry)
+        self.dispatch(pkt.entry, pkt.type, pkt.is_master)
         self.__flood(addr, data)

@@ -8,7 +8,7 @@ class Datastore(object):
     self.db = {}
 
   def make_empty_entry(self, key):
-    return Entry(key, EMPTY_VALUE, time())
+    return Entry(key, 0, '[]')
 
   def put(self, ent):
     self[ent.key] = ent
@@ -19,6 +19,7 @@ class Datastore(object):
     return self.db[ke]
 
   def __setitem__(self, ke, val):
+    print val
     assert type(val) == Entry
     if (ke not in self.db) or (self.db[ke].ts < val.ts):
-      self.dv[ke] = val
+      self.db[ke] = val
