@@ -1,3 +1,6 @@
+import time
+
+
 UNCOMMITED = 0
 ZOMBIE = 1
 DEAD = 3
@@ -38,21 +41,21 @@ class Tx(object):
     self.sock.sendto("OK [%s] [%s]" % (self.opaque, val), self.addr)
 
 class PutTx(Tx):
-  def __init__(self, key, opaque, value, sock, addr):
-    Tx.__init__(pkt)
+  def __init__(self, db, entry, opaque, sock, addr):
+    Tx.__init__(self, db, entry)
     self.addr = addr
     self.sock = sock
     self.opaque = opaque
-    self.kv = (key, value)
+    self.entry = entry
 
   def commit(self):
-    db.put(self.kv);
+    self.db.put(self.kv);
     ack = reduce(lambda x,y: x if x.ts > y.ts else y, self.acks)
     self.send_res(ack.val)
     
 class GetTx(Tx):
-  def __init__(self, key, opaque, sock, addr):
-    Tx.__init__(pkt)
+  def __init__(self, db, key, opaque, sock, addr):
+    Tx.__init__(self, db, key)
     self.addr = addr
     self.sock = sock
     self.opaque = opaque

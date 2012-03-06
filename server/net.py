@@ -4,6 +4,7 @@ from collections import namedtuple
 import tx
 import re
 import db
+import time
 
 Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig'])
 
@@ -67,18 +68,18 @@ class Network(object):
     if t == TYPE_GACK:
       self.db.put(entry)
       if entry.key in self.putTxs:
-        self.putTxs[entry.key].ack(entry)
+        self.putTxs[(entry.key, entry.ts)].ack(entry)
     elif t == TYPE_GET:
       self.flood(self.make_ack(TYPE_GACK, db[entry.key]))
     elif t == TYPE_PUT:
       try:
-        t = self.txs[(entry.key, entry.tstamp)]
+        t = self.txs[(entry.key, entry.ts)]
         t.entry = entry
       except KeyError:
         t = Tx(self.db, entry)
-        self.txs[(entry.key, entry.tstamp)] = t
+        self.txs[(entry.key, entry.ts)] = t
 
-      a = self.make_ack(TYPE_PACK, db[entry.key])
+      a = self.make_ack(TYPE_PACK, db[(entry.key, entry.ts)])
       t.ack(a.entry)
       if self.is_master:
         t.has_master = 1
@@ -86,10 +87,10 @@ class Network(object):
       self.flood(a)
     elif t == TYPE_PACK:
       try:
-        t = self.txs[(entry.key, entry.tstamp)]
+        t = self.txs[(entry.key, entry.ts)]
       except KeyError:
         t = Tx(self.db, None)
-        self.txs[(entry.key, entry.tstamp)] = t
+        self.txs[(entry.key, entry.ts)] = t
       t.ack(entry)
       if m:
         t.has_master = 1
@@ -99,14 +100,14 @@ class Network(object):
       m = self.get.match(data)
       opaque = m.group(0)
       key = m.group(1)
-      t = GetTx(key, opaque, self.s, addr)
+      t = tx.GetTx(db, key, opaque, self.s, addr)
       self.getTxs[key] = t
     else:
       m = self.put.match(data)
       opaque = m.group(0)
       key = m.group(1)
       value = m.group(2)
-      self.txs[key] = PutTx(key, opaque, value, self.s, addr)
+      self.txs[key] = tx.PutTx(self.db, db.Entry(key, value, time.time()), opaque, self.s, addr)
 
   def poll(self):
     while True:

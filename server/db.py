@@ -4,12 +4,11 @@ from time import time
 Entry = namedtuple('Entry', ['key', 'ts', 'val'])
 
 class Datastore(object):
-  def __init__(self, myserver):
+  def __init__(self):
     self.db = {}
-    self.myserver = myserver
 
   def make_empty_entry(self, key):
-    return Entry(key, EMPTY_VALUE, (time(), self.myserver))
+    return Entry(key, EMPTY_VALUE, time())
 
   def put(self, ent):
     self[ent.key] = ent
@@ -21,6 +20,5 @@ class Datastore(object):
 
   def __setitem__(self, ke, val):
     assert type(val) == Entry
-    if (ke not in self.db) or
-       (self.db[ke].ts < val.ts):
+    if (ke not in self.db) or (self.db[ke].ts < val.ts):
       self.dv[ke] = val
