@@ -1,6 +1,6 @@
 from collections import namedtuple
 
-Entry = namedtuple('Entry', ['ts', 'val', 'tstamp'])
+Entry = namedtuple('Entry', ['key', 'ts', 'val'])
 
 class Datastore(object):
   def __init__(self):
@@ -17,16 +17,16 @@ class Datastore(object):
   def get(self, d):
     key = d['key'];
     try:
-      return {'s':'OK', 'val':val(key), 'ts':ts(key)};
+      return {'val':val(key), 'ts':ts(key)};
     except KeyError:
-      return {'s':'EM', 'val':'[]' 'ts':0}
+      return {'val':'[]', 'ts':0}
 
   def put(self, d):
     key = d['key']
     try:
-      r = {'s':'OK', 'val':val(key), 'ts':ts(key)}
+      r = {'val':val(key), 'ts':ts(key)}
     except KeyError:
-      r = {'s':'OK', 'val':'[]', 'ts':0}
+      r = {'val':'[]', 'ts':0}
     
     if r['ts'] < d['ts']:
       self[key] = Entry(d['val'], d['ts'])
@@ -38,6 +38,5 @@ class Datastore(object):
     return self.db[ke]
 
   def __setitem__(self, ke, val):
-    if (ke not in self.db) or
-       (self.db[ke].ts < val.ts):
-      self.dv[ke] = val
+    if (ke not in self.db) or (self.db[ke].ts < val.ts):
+      self.db[ke] = val
