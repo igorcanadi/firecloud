@@ -1,9 +1,7 @@
 from collections import namedtuple
 from time import time
 
-Entry = namedtuple('Entry', ['key', 'val', 'tstamp'])
-EMPTY_VALUE = '[]'
-
+Entry = namedtuple('Entry', ['key', 'ts', 'val'])
 
 class Datastore(object):
   def __init__(self, myserver):

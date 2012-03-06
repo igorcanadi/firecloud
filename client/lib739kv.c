@@ -9,11 +9,12 @@
 #include <assert.h>
 #include <string.h>
 #include <unistd.h>
+#include <stdlib.h>
+#include <time.h>
 #include "lib739kv.h"
 #define MAX_SERVERS 4
 #define MAX_VALUE_LEN 2048
 #define MAX_RETURN_LEN 3000
-#define MICRO_TIMEOUT 3000
 
 char *servers[MAX_SERVERS];
 char killed[MAX_SERVERS];
@@ -21,6 +22,9 @@ int nodes_down;
 int servers_size;
 int last_unique_id;
 struct sockaddr_in server_addresses[MAX_SERVERS];
+// first element is micro timeout
+// second element is macro - micro timeout
+int timeouts[2] = {3000, 7000};
 
 // -1 on failure
 // 0 on ok
@@ -87,14 +91,14 @@ void kv739_recover(char *server) {
     assert(false);
 }
 
-int choose_random_node() {
+int choose_random_node(int not_this_one) {
     int ret;
 
-    if (nodes_down == servers_size) {
+    if (nodes_down == servers_size || (not_this_one != -1 && (nodes_down + 1) == servers_size)) {
         return -1;
     }
 
-    for (ret = rand() % servers_size; killed[ret]; ret = rand() % servers_size);
+    for (ret = rand() % servers_size; killed[ret] || ret == not_this_one; ret = rand() % servers_size);
     return ret;
 }
 
@@ -133,7 +137,7 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
         
     for (i = 2; reply[i]; ++i) {
         if (reply[i] == '[') {
-            if (state != 0 || state == 2) {
+            if (state != 0 && state != 2) {
                 return -1;
             }
             ++state;
@@ -158,6 +162,7 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
             value[i_val++] = reply[i];
         }
     }
+    value[i_val] = '\0';
     
     if (id_got == request_id && state == 4) {
         // parsing good
@@ -166,8 +171,10 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
     return -1;
 }
 
+// -1 on faliure
+// 0 on OK
 int send_query_string(char *query, char *value, int request_id) {
-    int node_to_send_to, i;
+    int node_to_send_to = -1, iteration;
     char *return_buffer;
     int retval = 0;
     int sck;
@@ -186,33 +193,37 @@ int send_query_string(char *query, char *value, int request_id) {
         goto closesocket;
     }
 
-    node_to_send_to = choose_random_node();
-    if (node_to_send_to == -1) {
-        retval = -1;
-        goto closesocket;
-    }
-    server = &server_addresses[node_to_send_to];
-    if (sendto(sck, query, strlen(query), 0, (struct sockaddr *)server, sizeof(*server)) != strlen(query)) {
-        retval = -1;
-        goto closesocket;
-    }
-
-    do {
-        retval = get_me_the_data_with_timeout(sck, return_buffer, MAX_RETURN_LEN, MICRO_TIMEOUT);
-
-        if (retval == -1) {
-            // error
-            goto closesocket;
-        } else if (retval == 0) {
-            // timeout TODO try another server
+    for (iteration = 0; iteration < 2; ++iteration) {
+        node_to_send_to = choose_random_node(node_to_send_to);
+        if (node_to_send_to == -1) {
+            retval = -1;
             goto closesocket;
         }
 
-        if (parse_ok_reply(return_buffer, value, request_id) == 0) {
-            // i got ok response
-            break;
+        server = &server_addresses[node_to_send_to];
+        if (sendto(sck, query, strlen(query), 0, (struct sockaddr *)server, sizeof(*server)) != strlen(query)) {
+            retval = -1;
+            // error, try another server
+            continue;
         }
-    } while (true);
+
+        do {
+            retval = get_me_the_data_with_timeout(sck, return_buffer, MAX_RETURN_LEN, timeouts[iteration]);
+
+            if (retval == -1) {
+                // error, go out
+                goto closesocket;
+            } else if (retval == 0) {
+                // timeout, try another server
+                retval = -1;
+                break;
+            } else if (parse_ok_reply(return_buffer, value, request_id) == 0) {
+                // i got ok response
+                retval = 0;
+                goto closesocket;
+            }
+        } while (true);
+    }
 
 closesocket:
     close(sck);
@@ -254,6 +265,10 @@ int kv739_put(char *key, char *value, char *old_value) {
     sprintf(query_string, "PUT [%s] [%s] [%d]", key, value, ++last_unique_id);
 
     retval = send_query_string(query_string, old_value, last_unique_id);
+    if (old_value[0] == '\0') {
+        // no old value
+        retval = 1;
+    }
 
     free(query_string);
     return retval;
@@ -264,11 +279,14 @@ int main() {
     char *s[4];
     char t1[100], t2[100], t3[100];
 
+    //srand(time(NULL));
+    last_unique_id = rand() % 1000;
+
     for (i = 0; i < 4; ++i) {
         s[i] = (char *)malloc(100);
     }
 
-    sprintf(s[0], "127.0.0.1:10000");
+    sprintf(s[0], "127.0.0.1:9999");
     sprintf(s[1], "");
 
     kv739_init(s);
@@ -276,9 +294,9 @@ int main() {
     sprintf(t1, "kita");
     sprintf(t2, "a");
 
-    printf("should be 1: %d\n", kv739_put(t1, t2, t3));
-    printf("should be 0: %d\n", kv739_get(t1, t2));
-    printf("should be a: %s\n", t2);
+    printf("put [kita] [a]: %d\n", kv739_put(t1, t2, t3));
+    printf("get [kita]: %d\n", kv739_get(t1, t2));
+    printf("return from get: %s\n", t2);
 
     return 0;
 }
