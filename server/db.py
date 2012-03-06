@@ -1,43 +1,28 @@
 from collections import namedtuple
+from time import time
 
-Entry = namedtuple('Entry', ['ts', 'val', 'tstamp'])
+Entry = namedtuple('Entry', ['key', 'val', 'tstamp'])
+EMPTY_VALUE = '[]'
+
 
 class Datastore(object):
-  def __init__(self):
+  def __init__(self, myserver):
     self.db = {}
+    self.myserver = myserver
 
-  def val(self, key):
-    #return self.db[key]['val']
-    return self.db[key].val
+  def make_empty_entry(self, key):
+    return Entry(key, EMPTY_VALUE, (time(), self.myserver))
 
-  def ts(self, key):
-    return self.db[key].ts
-    #return self.db[key]['ts']
-
-  def get(self, d):
-    key = d['key'];
-    try:
-      return {'s':'OK', 'val':val(key), 'ts':ts(key)};
-    except KeyError:
-      return {'s':'EM', 'val':'[]' 'ts':0}
-
-  def put(self, d):
-    key = d['key']
-    try:
-      r = {'s':'OK', 'val':val(key), 'ts':ts(key)}
-    except KeyError:
-      r = {'s':'OK', 'val':'[]', 'ts':0}
-    
-    if r['ts'] < d['ts']:
-      self[key] = Entry(d['val'], d['ts'])
-    return r;
+  def put(self, ent):
+    self[ent.key] = ent
 
   def __getitem__(self, ke):
     if ke not in self.db:
-      return None
+      return self.make_empty_entry(ke)
     return self.db[ke]
 
   def __setitem__(self, ke, val):
+    assert type(val) == Entry
     if (ke not in self.db) or
        (self.db[ke].ts < val.ts):
       self.dv[ke] = val
