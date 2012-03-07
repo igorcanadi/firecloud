@@ -5,6 +5,7 @@ import tx
 import re
 import db
 import time
+import random
 
 Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq'])
 
@@ -12,9 +13,6 @@ TYPE_PUT = 'P'
 TYPE_PACK = 'A'
 TYPE_GET = 'G'
 TYPE_GACK = 'H'
-
-def ID(entry):
-  return (entry.key, entry.ts)
 
 def check(txs):
   while True:
@@ -58,55 +56,58 @@ class Network(object):
 
   def flood(self, pkt):
     assert type(pkt.entry.key) is str
+    print 'Floading: ', pkt
     self.__flood(None, pickle.dumps(pkt))
 
   def has_seen(self, pkt):
-    return (ID(pkt.entry), pkt.orig) in self.seen
+    return (pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig) in self.seen
 
   def commit(self, tx):
     print 'Commit: ', tx.entry
     try:
       print self.listeners
-      self.listeners[ID(tx.entry)].commit(tx) 
-      del self.listeners[ID(tx.entry)]
+      self.listeners[tx.seq].commit(tx) 
+      del self.listeners[tx.seq]
     except KeyError:
-      print 'Didnt find: ', ID(tx.entry)
+      print 'Didnt find: ', (tx.seq)
       pass
 
   def see(self, pkt):
-    self.seen.add((ID(pkt.entry), pkt.orig))
+    self.seen.add((pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig))
 
-  def dispatch(self, entry, seq, t, m):
+  def dispatch(self, entry, seq, typ, m):
     assert type(entry.key) is str
 
-    if t == TYPE_GACK:
+    if typ == TYPE_GACK:
       self.db.put(entry)
       # don't make a tx for it
       try:
-        self.txs[ID(entry)].ack(entry)
+        self.txs[seq].ack(entry)
       except KeyError:
         pass
 
-    elif t == TYPE_GET:
+    elif typ == TYPE_GET:
       self.flood(self.make_ack(TYPE_GACK, self.db[entry.key], seq))
-    elif t == TYPE_PUT:
+    elif typ == TYPE_PUT:
       try:
-        t = self.txs[ID(entry)]
+        t = self.txs[seq]
       except KeyError:
-        t = tx.Tx(self)
-        self.txs[ID(entry)] = t
+        t = tx.Tx(self, seq)
+        self.txs[seq] = t
 
+      print '>>>>>> SETTING UPDATE TO:', entry, t
       t.update = entry
       t.ack(self.db[entry.key], m)
       a = self.make_ack(TYPE_PACK, self.db[entry.key], seq)
       self.flood(a)
+      print t
 
-    elif t == TYPE_PACK:
+    elif typ == TYPE_PACK:
       try:
-        t = self.txs[ID(entry)]
+        t = self.txs[seq]
       except KeyError:
-        t = tx.Tx(self)
-        self.txs[ID(entry)] = t
+        t = tx.Tx(self, seq)
+        self.txs[seq] = t
 
       t.ack(entry, m)
 
@@ -126,14 +127,14 @@ class Network(object):
       type_ = TYPE_PUT
 
     ti = time.time()
-    r = random.randint()
+    r = random.random()
     print key
     assert type(key) is str
     e = db.Entry(key, ti, value if type_ == TYPE_PUT else self.db[key].val)
-    self.listeners[(key, ti, r)] = tx.Listener(self.db, opaque, self.s, addr)
+    self.listeners[r] = tx.Listener(self.db, opaque, self.s, addr)
     if type_ == TYPE_GET:
-      t = tx.Tx(self)
-      self.txs[(key, ti)] = t
+      t = tx.Tx(self, r)
+      self.txs[r] = t
       t.ack(e, self.master)
 
 
@@ -144,10 +145,10 @@ class Network(object):
 
   def poll(self):
     while True:
-      zombie = next(self.next_zombie)
-      if False and zombie is not None:
-        self.flood(Packet(zombie.entry, self.master, type, self.me, r))
-        self.rebroadcast(zombie)
+      #zombie = next(self.next_zombie)
+      #if False and zombie is not None:
+      #  self.flood(Packet(zombie.entry, self.master, type, self.me, r))
+      #  self.rebroadcast(zombie)
 
 
       (data, addr) = self.s.recvfrom(10000)
