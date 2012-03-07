@@ -132,7 +132,7 @@ class Network(object):
   def poll(self):
     while True:
       zombie = next(self.next_zombie)
-      if False or zombie is not None:
+      if False and zombie is not None:
         self.flood(Packet(zombie.entry, self.master, type, self.me))
         self.rebroadcast(zombie)
 
