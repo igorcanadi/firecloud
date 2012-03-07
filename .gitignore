@@ -1,4 +1,5 @@
 *.swp
 *.pyc
+server/*.pyc
 client/t
 client/a.out
