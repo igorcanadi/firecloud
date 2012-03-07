@@ -1,4 +1,5 @@
 import time
+from db import Entry
 
 UNCOMMITED = 0
 ZOMBIE = 1
@@ -23,9 +24,10 @@ class Listener(object):
     self.sock.sendto("OK %s %s" % (tx.entry.val, self.opaque), self.addr)
 
 class Tx(object):
-  def __init__(self, net):
+  def __init__(self, net, callback=None):
     self.entry = None
     self.acks = 0
+    self.callback = callback
     self.state = UNCOMMITED
     self.start = time.time()
     self.update = None
@@ -38,17 +40,23 @@ class Tx(object):
     return time.time() > self.start + ZOMBIE_TIMEOUT
 
   def commit(self):
-    self.net.commit(self)
+    print "call back to: ", self.callback
+    if self.callback is not None:
+      self.callback(self)
 
   def ack(self, entry, is_master):
-    print self, "acked"
+    assert type(entry.key) is str
+    print self, "acked by", entry
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
 
     self.acks += 2 if is_master else 1
 
+    print '   @', self.acks, 'acks'
+
     if self.acks >= 3 and self.state == UNCOMMITED:
       self.state = ZOMBIE
+      print '   -> Commit'
       self.commit()
 
     if self.acks == 5:

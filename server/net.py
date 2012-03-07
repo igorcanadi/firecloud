@@ -53,25 +53,32 @@ class Network(object):
       self.s.sendto(data, a)
 
   def make_ack(self, t, entry):
+    assert type(entry.key) is str
     return Packet(entry, self.master, t, self.me)
 
   def flood(self, pkt):
+    assert type(pkt.entry.key) is str
     self.__flood(None, pickle.dumps(pkt))
 
   def has_seen(self, pkt):
     return (ID(pkt.entry), pkt.orig) in self.seen
 
   def commit(self, tx):
+    print 'Commit: ', tx.entry
     try:
+      print self.listeners
       self.listeners[ID(tx.entry)].commit(tx) 
       del self.listeners[ID(tx.entry)]
     except KeyError:
+      print 'Didnt find: ', ID(tx.entry)
       pass
 
   def see(self, pkt):
     self.seen.add((ID(pkt.entry), pkt.orig))
 
   def dispatch(self, entry, t, m):
+    assert type(entry.key) is str
+
     if t == TYPE_GACK:
       self.db.put(entry)
       # don't make a tx for it
@@ -90,8 +97,8 @@ class Network(object):
         self.txs[ID(entry)] = t
 
       t.update = entry
-      t.ack(self.db[ID(entry)], m)
-      a = self.make_ack(TYPE_PACK, self.db[ID(entry)])
+      t.ack(self.db[entry.key], m)
+      a = self.make_ack(TYPE_PACK, self.db[entry.key])
       self.flood(a)
 
     elif t == TYPE_PACK:
@@ -110,24 +117,28 @@ class Network(object):
       key = m.group(1)
       opaque = m.group(2)
       value = None
-      type = TYPE_GET
+      type_ = TYPE_GET
     else:
       m = self.put.match(data)
       key = m.group(1)
       value = m.group(2)
       opaque = m.group(3)
-      type = TYPE_PUT
+      type_ = TYPE_PUT
 
     ti = time.time()
-    e = db.Entry(key, ti, value if type == TYPE_PUT else self.db[key].val)
+    print key
+    assert type(key) is str
+    e = db.Entry(key, ti, value if type_ == TYPE_PUT else self.db[key].val)
     self.listeners[(key, ti)] = tx.Listener(self.db, opaque, self.s, addr)
-    if type == TYPE_GET:
+    if type_ == TYPE_GET:
       t = tx.Tx(self)
       self.txs[(key, ti)] = t
       t.ack(e, self.master)
 
+
     print self.db[key]
-    pkt = pickle.dumps(Packet(e, self.master, type, self.me))
+    assert type(e.key) is str
+    pkt = pickle.dumps(Packet(e, self.master, type_, self.me))
     self.s.sendto(pkt, self.me)
 
   def poll(self):
@@ -145,10 +156,10 @@ class Network(object):
       else:
         pkt = pickle.loads(data)
         if self.has_seen(pkt): 
-          print 'Dropping Packet (has seen): ', pkt
           continue
 
         print pkt
         self.see(pkt)
         self.dispatch(pkt.entry, pkt.type, pkt.is_master)
+        assert type(pkt.entry.key) is str
         self.__flood(addr, data)
