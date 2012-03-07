@@ -59,7 +59,7 @@ class Network(object):
     self.__flood(None, pickle.dumps(pkt))
 
   def has_seen(self, pkt):
-    return ID(pkt.entry) in self.seen
+    return (ID(pkt.entry), pkt.orig) in self.seen
 
   def commit(self, tx):
     try:
@@ -68,8 +68,8 @@ class Network(object):
     except KeyError:
       pass
 
-  def see(self, entry):
-    self.seen.add(ID(entry))
+  def see(self, pkt):
+    self.seen.add((ID(pkt.entry), pkt.orig))
 
   def dispatch(self, entry, t, m):
     if t == TYPE_GACK:
@@ -145,9 +145,10 @@ class Network(object):
       else:
         pkt = pickle.loads(data)
         if self.has_seen(pkt): 
+          print 'Dropping Packet (has seen): ', pkt
           continue
 
         print pkt
-        self.see(pkt.entry)
+        self.see(pkt)
         self.dispatch(pkt.entry, pkt.type, pkt.is_master)
         self.__flood(addr, data)

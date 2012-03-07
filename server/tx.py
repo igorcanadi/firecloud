@@ -47,7 +47,7 @@ class Tx(object):
 
     self.acks += 2 if is_master else 1
 
-    if self.acks >= 1 and self.state == UNCOMMITED:
+    if self.acks >= 3 and self.state == UNCOMMITED:
       self.state = ZOMBIE
       self.commit()
 
