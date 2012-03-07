@@ -16,6 +16,7 @@
 #define MAX_SERVERS 4
 #define MAX_VALUE_LEN 2048
 #define MAX_RETURN_LEN 3000
+#define LOG(x, args...) fprintf(stderr, "[%d] %s():%d -- " x "\n", time(NULL), __func__, __LINE__, ## args)
 
 char *servers[MAX_SERVERS];
 char killed[MAX_SERVERS];
@@ -33,6 +34,8 @@ int kv739_init(char *s[]) {
     int i, j;
     char ip_buffer[20];
     int port;
+
+    LOG("Initializing the client...");
 
     for (servers_size = 0; servers_size < MAX_SERVERS && s[servers_size][0]; ++servers_size) {
         servers[servers_size] = (char *)malloc(sizeof(char) * (sizeof(s[servers_size]) + 1));
@@ -61,6 +64,7 @@ int kv739_init(char *s[]) {
         server_addresses[i].sin_family = AF_INET;
         server_addresses[i].sin_addr.s_addr = inet_addr(ip_buffer);
         server_addresses[i].sin_port = htons(port);
+        LOG("IP %s, port %d", ip_buffer, port);
     }
 
     return 0;
@@ -68,6 +72,8 @@ int kv739_init(char *s[]) {
 
 void kv739_fail(char *server) {
     int i;
+
+    LOG("Server %s is down", server);
 
     for (i = 0; i < servers_size; ++i) {
         if (strcmp(server, servers[i]) == 0) {
@@ -81,6 +87,8 @@ void kv739_fail(char *server) {
 
 void kv739_recover(char *server) {
     int i;
+
+    LOG("Server %s is back up", server);
 
     for (i = 0; i < servers_size; ++i) {
         if (strcmp(server, servers[i]) == 0) {
@@ -181,8 +189,11 @@ int send_query_string(char *query, char *value, int request_id) {
     int sck;
     struct sockaddr_in *server;
 
+    LOG("Sending %s with ID %d", query, request_id);
+
     return_buffer = (char *)malloc(sizeof(char) * (MAX_RETURN_LEN));
     if (return_buffer == NULL) {
+        LOG("Failed to initialize return buffer");
         retval = -1;
         goto out;
     }
@@ -190,6 +201,7 @@ int send_query_string(char *query, char *value, int request_id) {
     // open the socket
     sck = socket(AF_INET, SOCK_DGRAM, 0);
     if (sck < 0) {
+        LOG("Failed to open the socket");
         retval = -1;
         goto closesocket;
     }
@@ -197,12 +209,16 @@ int send_query_string(char *query, char *value, int request_id) {
     for (iteration = 0; iteration < 2; ++iteration) {
         node_to_send_to = choose_random_node(node_to_send_to);
         if (node_to_send_to == -1) {
+            LOG("Failed to find a node to send to");
             retval = -1;
             goto closesocket;
         }
 
+        LOG("Trying to send to server %s (iteration %d)", servers[node_to_send_to], iteration);
+
         server = &server_addresses[node_to_send_to];
         if (sendto(sck, query, strlen(query), 0, (struct sockaddr *)server, sizeof(*server)) != strlen(query)) {
+            LOG("Sending failed. I might try another server.");
             retval = -1;
             // error, try another server
             continue;
@@ -213,15 +229,22 @@ int send_query_string(char *query, char *value, int request_id) {
 
             if (retval == -1) {
                 // error, go out
+                LOG("Error receiving data. Bailing out.");
                 goto closesocket;
             } else if (retval == 0) {
                 // timeout, try another server
+                LOG("Query timed out. I might try another server.");
                 retval = -1;
                 break;
-            } else if (parse_ok_reply(return_buffer, value, request_id) == 0) {
-                // i got ok response
-                retval = 0;
-                goto closesocket;
+            } else {
+                LOG("Got back: %s", return_buffer);
+                if (parse_ok_reply(return_buffer, value, request_id) == 0) {
+                    LOG("Response OK, happy times");
+                    // i got ok response
+                    retval = 0;
+                    goto closesocket;
+                }
+                LOG("Response NOT ok, trying to receive more data");
             }
         } while (true);
     }
@@ -242,11 +265,13 @@ int kv739_get(char *key, char *value) {
 
     query_string = (char *)malloc(sizeof(char) * (7 + strlen(key)));
     if (query_string == NULL) {
+        LOG("Failed to initialize query string");
         return -1;
     }
     sprintf(query_string, "GET [%s] [%d]", key, ++last_unique_id);
 
     retval = send_query_string(query_string, value, last_unique_id);
+    LOG("GET retval: %d, value: %s", retval, value);
 
     free(query_string);
     return retval;
@@ -261,15 +286,17 @@ int kv739_put(char *key, char *value, char *old_value) {
 
     query_string = (char *)malloc(sizeof(char) * (9 + strlen(key) + strlen(value)));
     if (query_string == NULL) {
+        LOG("Failed to initialize query string");
         return -1;
     }
     sprintf(query_string, "PUT [%s] [%s] [%d]", key, value, ++last_unique_id);
 
     retval = send_query_string(query_string, old_value, last_unique_id);
-    if (old_value[0] == '\0') {
+    if (strlen(old_value) == 0) {
         // no old value
         retval = 1;
     }
+    LOG("PUT retval: %d, old value: %s", retval, old_value);
 
     free(query_string);
     return retval;
@@ -280,7 +307,7 @@ int main() {
     char *s[5];
     char t1[100], t2[100], t3[100], t4[100], b[100];
 
-    //srand(time(NULL));
+    srand(time(NULL));
     last_unique_id = rand() % 1000;
 
     for (i = 0; i < 5; ++i) {
@@ -300,15 +327,12 @@ int main() {
     sprintf(t3, "a");
     sprintf(t4, "b");
 
-    printf("put [k1] [a]: %d\n", kv739_put(t1, t3, b));
-    printf("put [k2] [b]: %d\n", kv739_put(t2, t4, b));
-    printf("get [k1]: %d\n", kv739_get(t1, b));
-    printf("return from get: %s\n", b);
-    printf("get [k2]: %d\n", kv739_get(t2, b));
-    printf("return from get: %s\n", t2);
-    printf("put [k2] [a]: %d\n", kv739_put(t2, t3, b));
-    printf("get [k2]: %d\n", kv739_get(t2, b));
-    printf("return from get: %s\n", t2);
+    kv739_put(t1, t3, b);
+    kv739_put(t2, t4, b);
+    kv739_get(t1, b);
+    kv739_get(t2, b);
+    kv739_put(t2, t3, b);
+    kv739_get(t2, b);
 
     return 0;
 }
