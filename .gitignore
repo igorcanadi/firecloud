@@ -1,2 +1,4 @@
-.swp
-.pyc
+*.swp
+*.pyc
+client/t
+client/a.out
