@@ -76,7 +76,7 @@ class Network(object):
       self.db.put(entry)
       # don't make a tx for it
       try:
-        self.tx[ID(entry)].ack(entry)
+        self.txs[ID(entry)].ack(entry)
       except KeyError:
         pass
 
@@ -87,11 +87,12 @@ class Network(object):
         t = self.txs[ID(entry)]
       except KeyError:
         t = tx.Tx(self)
-        self.txs[(entry.key, entry.ts)] = t
+        self.txs[ID(entry)] = t
 
       t.update = entry
-      t.ack(entry, self.master)
-      self.flood(self.make_ack(TYPE_PACK, self.db[ID(entry)]))
+      a = self.make_ack(TYPE_PACK, self.db[ID(entry)])
+      t.ack(a, self.master)
+      self.flood(a)
 
     elif t == TYPE_PACK:
       try:
