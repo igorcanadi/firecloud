@@ -90,7 +90,7 @@ class Network(object):
         self.txs[ID(entry)] = t
 
       t.update = entry
-      t.ack(self.db[ID(entry)])
+      t.ack(self.db[ID(entry)], m)
       a = self.make_ack(TYPE_PACK, self.db[ID(entry)])
       self.flood(a)
 
