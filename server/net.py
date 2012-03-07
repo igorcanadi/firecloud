@@ -6,7 +6,7 @@ import re
 import db
 import time
 
-Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig'])
+Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq'])
 
 TYPE_PUT = 'P'
 TYPE_PACK = 'A'
@@ -52,9 +52,9 @@ class Network(object):
     for a in filter(lambda x: x != orig, self.addrs):
       self.s.sendto(data, a)
 
-  def make_ack(self, t, entry):
+  def make_ack(self, t, entry, seq):
     assert type(entry.key) is str
-    return Packet(entry, self.master, t, self.me)
+    return Packet(entry, self.master, t, self.me, seq)
 
   def flood(self, pkt):
     assert type(pkt.entry.key) is str
@@ -76,7 +76,7 @@ class Network(object):
   def see(self, pkt):
     self.seen.add((ID(pkt.entry), pkt.orig))
 
-  def dispatch(self, entry, t, m):
+  def dispatch(self, entry, seq, t, m):
     assert type(entry.key) is str
 
     if t == TYPE_GACK:
@@ -88,7 +88,7 @@ class Network(object):
         pass
 
     elif t == TYPE_GET:
-      self.flood(self.make_ack(TYPE_GACK, self.db[entry.key]))
+      self.flood(self.make_ack(TYPE_GACK, self.db[entry.key], seq))
     elif t == TYPE_PUT:
       try:
         t = self.txs[ID(entry)]
@@ -98,7 +98,7 @@ class Network(object):
 
       t.update = entry
       t.ack(self.db[entry.key], m)
-      a = self.make_ack(TYPE_PACK, self.db[entry.key])
+      a = self.make_ack(TYPE_PACK, self.db[entry.key], seq)
       self.flood(a)
 
     elif t == TYPE_PACK:
@@ -126,10 +126,11 @@ class Network(object):
       type_ = TYPE_PUT
 
     ti = time.time()
+    r = random.randint()
     print key
     assert type(key) is str
     e = db.Entry(key, ti, value if type_ == TYPE_PUT else self.db[key].val)
-    self.listeners[(key, ti)] = tx.Listener(self.db, opaque, self.s, addr)
+    self.listeners[(key, ti, r)] = tx.Listener(self.db, opaque, self.s, addr)
     if type_ == TYPE_GET:
       t = tx.Tx(self)
       self.txs[(key, ti)] = t
@@ -138,14 +139,14 @@ class Network(object):
 
     print self.db[key]
     assert type(e.key) is str
-    pkt = pickle.dumps(Packet(e, self.master, type_, self.me))
+    pkt = pickle.dumps(Packet(e, self.master, type_, self.me, r))
     self.s.sendto(pkt, self.me)
 
   def poll(self):
     while True:
       zombie = next(self.next_zombie)
       if False and zombie is not None:
-        self.flood(Packet(zombie.entry, self.master, type, self.me))
+        self.flood(Packet(zombie.entry, self.master, type, self.me, r))
         self.rebroadcast(zombie)
 
 
@@ -160,6 +161,6 @@ class Network(object):
 
         print pkt
         self.see(pkt)
-        self.dispatch(pkt.entry, pkt.type, pkt.is_master)
+        self.dispatch(pkt.entry, pkt.seq, pkt.type, pkt.is_master)
         assert type(pkt.entry.key) is str
         self.__flood(addr, data)
