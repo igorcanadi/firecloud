@@ -277,26 +277,37 @@ int kv739_put(char *key, char *value, char *old_value) {
 
 int main() {
     int i;
-    char *s[4];
-    char t1[100], t2[100], t3[100];
+    char *s[5];
+    char t1[100], t2[100], t3[100], t4[100], b[100];
 
     //srand(time(NULL));
     last_unique_id = rand() % 1000;
 
-    for (i = 0; i < 4; ++i) {
+    for (i = 0; i < 5; ++i) {
         s[i] = (char *)malloc(100);
     }
 
-    sprintf(s[0], "127.0.0.1:9999");
-    sprintf(s[1], "");
+    sprintf(s[0], "127.0.0.1:10000");
+    sprintf(s[1], "127.0.0.1:10001");
+    sprintf(s[2], "127.0.0.1:10002");
+    sprintf(s[3], "127.0.0.1:10003");
+    sprintf(s[4], "");
 
     kv739_init(s);
 
-    sprintf(t1, "kita");
-    sprintf(t2, "a");
+    sprintf(t1, "k1");
+    sprintf(t2, "k2");
+    sprintf(t3, "a");
+    sprintf(t4, "b");
 
-    printf("put [kita] [a]: %d\n", kv739_put(t1, t2, t3));
-    printf("get [kita]: %d\n", kv739_get(t1, t2));
+    printf("put [k1] [a]: %d\n", kv739_put(t1, t3, b));
+    printf("put [k2] [b]: %d\n", kv739_put(t2, t4, b));
+    printf("get [k1]: %d\n", kv739_get(t1, b));
+    printf("return from get: %s\n", b);
+    printf("get [k2]: %d\n", kv739_get(t2, b));
+    printf("return from get: %s\n", t2);
+    printf("put [k2] [a]: %d\n", kv739_put(t2, t3, b));
+    printf("get [k2]: %d\n", kv739_get(t2, b));
     printf("return from get: %s\n", t2);
 
     return 0;
