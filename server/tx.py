@@ -16,10 +16,11 @@ class Listener(object):
   def commit(self, tx):
     if tx.update is not None:
       self.db.put(tx.update)
+    print tx.entry
     # send old (or current) value
     print "sending to client:"
     print "OK %s %s" % (tx.entry.val, self.opaque)
-    self.sock.sendto("OK %s %s" % (self.opaque, tx.entry.val), self.addr)
+    self.sock.sendto("OK %s %s" % (tx.entry.val, self.opaque), self.addr)
 
 class Tx(object):
   def __init__(self, net):
