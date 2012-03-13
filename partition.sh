@@ -2,7 +2,7 @@
 source config.sh
 
 if [ $# -lt 3 ]; then
-    echo "usage: ./partition.sh [-A|-D] server1 server2"
+    echo "usage: ./partition.sh {-A|-D} server1 server2"
     echo "-A for creating partitions"
     echo "-D for healing partitions"
     echo "server can be 0, 1, 2, or 3"
