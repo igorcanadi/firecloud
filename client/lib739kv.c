@@ -290,7 +290,7 @@ int kv739_get(char *key, char *value) {
         // no key
         retval = 1;
     }
-    LOG("GET retval: %d, value: %s", retval, value);
+    LOG("GET retval: %d, value: %s", retval, retval == -1 ? "" : value);
 
     free(query_string);
     return retval;
@@ -315,7 +315,7 @@ int kv739_put(char *key, char *value, char *old_value) {
         // no old value
         retval = 1;
     }
-    LOG("PUT retval: %d, old value: %s", retval, old_value);
+    LOG("PUT retval: %d, old value: %s", retval, retval == -1 ? "" : old_value);
 
     free(query_string);
     return retval;
