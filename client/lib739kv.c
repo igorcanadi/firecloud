@@ -37,6 +37,9 @@ int kv739_init(char *s[]) {
 
     LOG("Initializing the client...");
 
+    srand(time(NULL));
+    last_unique_id = rand() % 10000;
+
     for (servers_size = 0; servers_size < MAX_SERVERS && s[servers_size][0]; ++servers_size) {
         servers[servers_size] = (char *)malloc(sizeof(char) * (sizeof(s[servers_size]) + 1));
         if (servers[servers_size] == NULL) {
@@ -130,6 +133,11 @@ int get_me_the_data_with_timeout(int sck, char *ret, int max_ret_size, int timeo
 
     if (retval > 0 && (retval = recvfrom(sck, ret, max_ret_size, 0, NULL, NULL)) < 0) {
         retval = -1;
+    }
+
+    // recvfrom doesn't null terminate the string
+    if (retval > 0) {
+        ret[retval] = '\0';
     }
 
     return retval;
@@ -308,9 +316,6 @@ int main() {
     int i;
     char *s[5];
     char t1[100], t2[100], t3[100], t4[100], b[100];
-
-    srand(time(NULL));
-    last_unique_id = rand() % 1000;
 
     for (i = 0; i < 5; ++i) {
         s[i] = (char *)malloc(100);
