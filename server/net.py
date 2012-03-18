@@ -117,6 +117,7 @@ class Network(object):
     if data[0] == 'G':
       m = self.get.match(data)
       key = m.group(1)
+      print 'Matched to: key: ', key
       opaque = m.group(2)
       value = None
       type_ = TYPE_GET
@@ -124,6 +125,7 @@ class Network(object):
       m = self.put.match(data)
       key = m.group(1)
       value = m.group(2)
+      print 'Matched to: value: ', value
       opaque = m.group(3)
       type_ = TYPE_PUT
 
