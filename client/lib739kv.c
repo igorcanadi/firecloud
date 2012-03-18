@@ -294,7 +294,7 @@ int kv739_put(char *key, char *value, char *old_value) {
     sprintf(query_string, "PUT [%s] [%s] [%d]", key, value, ++last_unique_id);
 
     retval = send_query_string(query_string, old_value, last_unique_id);
-    if (strlen(old_value) == 0) {
+    if (retval == 0 && strlen(old_value) == 0) {
         // no old value
         retval = 1;
     }
