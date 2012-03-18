@@ -148,7 +148,7 @@ void loop_stdin() {
       wait_until_start();
     } else {
       int offby = sleep_until(head.time);
-      if (offby > 10000) {
+      if (offby > 100000000) {
         /* We're way behind shceudle, fail. */
         printf("+ -1 ERROR: #%d Behind schedule %d us\n", head.id, offby);
         exit(1);
@@ -216,7 +216,8 @@ int sleep_until(unsigned long time) {
     printf("+ -1 ERROR: Sleeping WAAAY too long.\n");
     exit(1);
   }
-  printf("-2 %d\n", sleepusec);
+  // print slace time
+  printf("+ -2 %d\n", sleepusec);
   usleep(sleepusec);
   return 0;
 }
