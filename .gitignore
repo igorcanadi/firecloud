@@ -1,5 +1,7 @@
 *.swp
 *.pyc
 server/*.pyc
+client/*.so
+client/*.o
 client/t
 client/a.out
