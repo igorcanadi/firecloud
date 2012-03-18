@@ -10,10 +10,10 @@ clk = Clock()
 xcript = Transcript(clk)
 
 
-serv = Server(xcript, 'localhost', '1234')
-network = Network([serv, serv2], xcript)
+serv = Server(xcript, '127.0.0.1', '1234')
+network = Network([serv], xcript)
 
-sys = Client(clk, [serv, serv2])
+sys = Client(clk, [serv])
 
 
 kv = sys.store
