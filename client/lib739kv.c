@@ -45,6 +45,8 @@ int kv739_init(char *s[]) {
         strcpy(servers[servers_size], s[servers_size]);
     }
 
+    LOG("INIT'd severs.");
+
     for (i = 0; i < servers_size; ++i) {
         for (j = 0; servers[i][j] != 0 && servers[i][j] != ':'; ++j) {
             ip_buffer[j] = servers[i][j];

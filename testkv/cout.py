@@ -6,6 +6,7 @@ import time as time_
 from conf import SYNC_WINDOW 
 from threading import Thread
 
+ERROR_CODE = 0xDEADBEEF
 
 class ClientTrace(object):
   def __init__(self, trace, slack):
@@ -82,7 +83,7 @@ class ClientThread(Thread):
 
   def run(self):
     start = time_.time()
-    self.ctrace = fake_run_transcript(self.tups)
+    self.ctrace = run_transcript(self.tups)
     self.runtime = time_.time() - start
 
 
@@ -128,8 +129,11 @@ def run_transcript(tups):
   p = Popen(['./runner'], stdin=PIPE, stderr=STDOUT, stdout=PIPE)
   print 'writing to the proc'
   print 'writing %d bytes' % len(buf.buf)
-  print 'raw data:', buf.buf
+  print 'raw written to file'
+  with open('raw_transcript', 'w') as f:
+    f.write(buf.buf)
   out, err = p.communicate(input=buf.buf)
+  print 'Output is: ', out
   return reconstruct(out, tups)
 
 def fake_run_transcript(tups):
@@ -155,8 +159,12 @@ def reconstruct(text, tups):
   construct = []
   usec_slack = 0
   for line in text.split('\n'):
-    if len(line) == 0:
+    if len(line) == 0 or line[0] != '+':
       continue
+    # ignore leading '+ '
+    line = line[2:]
+    print ':: Reconstructing:', line
+    line.lstrip(' ')
     i = line.index(' ')
     tick, txt = line[0:i], line[i+1:]
     tick = int(tick)
@@ -166,10 +174,24 @@ def reconstruct(text, tups):
     elif tick == -2:
       usec_slack += int(txt)
     else:
+      # Handle a GET or PUT
       i = txt.index(' ')
       msec, txt= txt[0:i], txt[i+1:]
       msec = int(msec) / 1000.0
+      i = txt.index(' ')
+      code, txt= txt[0:i], txt[i+1:]
+      code = int(code)
+      if code == 0:
+        # worked correctly
+        pass
+      elif code < 0:
+        # error occured
+        txt = ERROR_CODE
+      elif code > 0:
+        # no previous key
+        txt = None
       construct.append((tick, msec, tickmap[tick], txt))
+  print 'Reconstructed to:', construct
   return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0))
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )

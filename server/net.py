@@ -43,6 +43,7 @@ class Network(object):
     addrs.remove(me)
     self.addrs = addrs
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    print 'I AM:', me
     self.s.bind(me)
     self.next_zombie = check(self.txs)
 
@@ -82,7 +83,7 @@ class Network(object):
       self.db.put(entry)
       # don't make a tx for it
       try:
-        self.txs[seq].ack(entry)
+        self.txs[seq].ack(entry, m)
       except KeyError:
         pass
 

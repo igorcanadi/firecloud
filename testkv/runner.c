@@ -42,18 +42,25 @@ typedef struct {
 
 void init(header head) {
   // read N host names
-  char lst[head.data][255];
+  char **lst = malloc(sizeof(char*) * (head.data + 1));
+  char *st;
   int i;
 
   for (i = 0; i < head.data; i++) {
-    fread(&lst[i], 1, 255, stdin);
+    st = (char*)malloc(sizeof(char)*255);
+    lst[i] = st;
+    fread(st, 1, 255, stdin);
   }
-  char *arr[head.data];
-  for (i = 0; i < head.data; i++) {
-    //printf("init %s\n", &lst[i]);
-    arr[i] = &lst[i];
+  st = (char*)malloc(sizeof(char)*255);
+  st[0] = NULL;
+  lst[head.data] = st;
+  
+  printf("at this loop\n");
+  for (i =0; i < 4 && lst[i][0]; ++i) {
+    printf("initing a server: %s\n", lst[i]);
   }
-  kv739_init(arr);
+
+  kv739_init(lst);
 }
 
 void fail(header head) {
@@ -84,7 +91,7 @@ void get(header head) {
     val[0] = NULL;
   }
 
-  printf("%d %ld %d GET [%s]\n", head.id, CURRENT_MSEC, rcode, &val);
+  printf("+ %d %ld %d [%s]\n", head.id, CURRENT_MSEC, rcode, &val);
   
   // do something with rcode and value
 }
@@ -104,16 +111,18 @@ void put(header head) {
     oldval[0] = NULL;
   }
 
-  printf("%d %ld %d PUT [%s]\n", head.id, CURRENT_MSEC, rcode, &oldval);
+  printf("+ %d %ld %d [%s]\n", head.id, CURRENT_MSEC, rcode, &oldval);
 
   // do something with rcode and old val
 }
 
 void wait_until_start() {
-  if (start_time <= current_msec()) {
-    printf("-1 ERROR: transcript stale by %ldus\n", start_time - CURRENT_USEC);
-    exit(1);
+  if (start_time <= CURRENT_USEC) {
+    printf("+ -1 ERROR: transcript stale by %ldus\n", start_time - CURRENT_USEC);
+    //exit(1);
+    return;
   }
+  printf("sleeping for start by %d usec\n", start_time - CURRENT_USEC);
   usleep(start_time - CURRENT_USEC);
 }
 
@@ -122,17 +131,17 @@ void loop_stdin() {
   header head;
   int rval;
   while (1) {
-    //printf("Doing loop\n");
+    printf("Doing loop\n");
     rval = fread(&head, 1, sizeof(head), stdin);
-    //printf("read %d bytes\n", rval);
+    printf("read %d bytes\n", rval);
     if (rval < 1) {
       //printf("read returned %d\n", rval);
       //printf("errno %d", errno);
-      printf("-1 pipe read error\n");
+      printf("+ -1 pipe read error\n");
       break;
     }
      
-    //printf("Seq #%d scheduled for %u\n", head.id, head.time);
+    printf("Seq #%d scheduled for %u\n", head.id, head.time);
     
     if (head.type == INIT) {
       start_time = head.time * 1000;
@@ -141,7 +150,7 @@ void loop_stdin() {
       int offby = sleep_until(head.time);
       if (offby > 10000) {
         /* We're way behind shceudle, fail. */
-        printf("-1 ERROR: #%d Behind schedule %d us\n", head.id, offby);
+        printf("+ -1 ERROR: #%d Behind schedule %d us\n", head.id, offby);
         exit(1);
       }
     }
@@ -197,14 +206,14 @@ int sleep_until(unsigned long time) {
   if (offset > time) {
     /* this time has passed. too late */
     //printf("Too Late! %ld > %ld\n", offset, time);
-    printf("-2 %d\n", time - offset);
+    printf("+ -2 %d\n", time - offset);
     return offset - time;
   }
   /* to sleep: */
   unsigned long sleepusec = time - offset;
   /* print slack time */
   if (sleepusec > 20000 * 1000) {
-    printf("-1 ERROR: Sleeping WAAAY too long.\n");
+    printf("+ -1 ERROR: Sleeping WAAAY too long.\n");
     exit(1);
   }
   printf("-2 %d\n", sleepusec);
@@ -214,6 +223,6 @@ int sleep_until(unsigned long time) {
 
 
 int main(int argc, char** argv) {
-  //printf("Working.\n");
+  printf("Working.\n");
   loop_stdin();
 }
