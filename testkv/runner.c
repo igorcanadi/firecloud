@@ -53,20 +53,20 @@ void init(header head) {
     //printf("init %s\n", &lst[i]);
     arr[i] = &lst[i];
   }
-  //kv739_init(arr);
+  kv739_init(arr);
 }
 
 void fail(header head) {
   char name[255];
   fread(&name, 1, 255, stdin);
-  //kv739_fail(&name);
+  kv739_fail(&name);
   //printf("fail %s", &name);
 }
 
 void recover(header head) {
   char name[255];
   fread(&name, 1, 255, stdin);
-  //kv739_fail(&name);
+  kv739_recover(&name);
   //printf("recover %s", &name);
 }
 
@@ -77,9 +77,14 @@ void get(header head) {
 
   fread(&ke, 1, 129, stdin);
 
-  printf("%d %ld GET [%s]\n", head.id, CURRENT_MSEC, &ke);
   
-  // rcode = kv739_get(&ke, &val);
+  rcode = kv739_get(&ke, &val);
+
+  if (rcode != 0) {
+    val[0] = NULL;
+  }
+
+  printf("%d %ld %d GET [%s]\n", head.id, CURRENT_MSEC, rcode, &val);
   
   // do something with rcode and value
 }
@@ -93,9 +98,13 @@ void put(header head) {
   fread(&ke, 1, 129, stdin);
   fread(&val, 1, head.data, stdin);
 
-  printf("%d %ld PUT [%s] [%s]\n",  head.id, CURRENT_USEC, &ke, &val);
+  rcode = kv739_put(&ke, &val, &oldval);
 
-  //rcode = kv739_put(&ke, &val, &oldval);
+  if (rcode != 0) {
+    oldval[0] = NULL;
+  }
+
+  printf("%d %ld %d PUT [%s]\n", head.id, CURRENT_MSEC, rcode, &oldval);
 
   // do something with rcode and old val
 }
