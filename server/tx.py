@@ -23,8 +23,8 @@ class Listener(object):
     print tx.entry
     # send old (or current) value
     print "sending to client:"
-    print "OK %s %s" % (tx.entry.val, self.opaque)
-    self.sock.sendto("OK %s %s" % (tx.entry.val, self.opaque), self.addr)
+    print "OK %s %s" % (self.opaque, tx.entry.val)
+    self.sock.sendto("OK %s %s" % (self.opaque, tx.entry.val), self.addr)
 
 class Tx(object):
   def __init__(self, net, seq):

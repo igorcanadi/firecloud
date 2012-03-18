@@ -186,10 +186,10 @@ def reconstruct(text, tups):
         pass
       elif code < 0:
         # error occured
-        txt = ERROR_CODE
+        txt = None
       elif code > 0:
         # no previous key
-        txt = None
+        txt = '[]'
       construct.append((tick, msec, tickmap[tick], txt))
   print 'Reconstructed to:', construct
   return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0))
