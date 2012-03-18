@@ -281,7 +281,7 @@ int kv739_get(char *key, char *value) {
     sprintf(query_string, "GET [%s] [%d]", key, ++last_unique_id);
 
     retval = send_query_string(query_string, value, last_unique_id);
-    if (retval == 0 && strlen(old_value) == 0) {
+    if (retval == 0 && strlen(value) == 0) {
         // no key
         retval = 1;
     }
