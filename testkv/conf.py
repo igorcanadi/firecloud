@@ -15,3 +15,6 @@ POST_NETWORK_WINDOW = 10
 # Window which all clients have to synchronize
 # This accounts for processor scheduling issues
 SYNC_WINDOW = 100
+
+MAX_VALUE_SIZE = 2048
+MAX_KEY_SIZE = 128

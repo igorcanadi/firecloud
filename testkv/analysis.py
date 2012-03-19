@@ -22,6 +22,12 @@ class KVAnalysis(object):
     self.kv[ke] = name
 
 
+def count_errors(ctrace):
+  for tick, sec, evt, txt in ctrace:
+    if tick < last_tick:
+
+
+
 def ticks_in_order(ctrace):
   """ Determines if all ticks came back in order
   """
