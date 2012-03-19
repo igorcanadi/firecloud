@@ -146,12 +146,15 @@ class Network(object):
     pkt = pickle.dumps(Packet(e, self.master, type_, self.me, r))
     self.s.sendto(pkt, self.me)
 
+  def rebroadcast(self, tx):
+    a = self.make_ack(TYPE_PACK, tx.entry, tx.seq)
+    self.flood(a)
+
   def poll(self):
     while True:
-      #zombie = next(self.next_zombie)
-      #if False and zombie is not None:
-      #  self.flood(Packet(zombie.entry, self.master, type, self.me, r))
-      #  self.rebroadcast(zombie)
+      zombie = next(self.next_zombie)
+      if  zombie is not None:
+        self.rebroadcast(zombie)
 
 
       (data, addr) = self.s.recvfrom(10000)
