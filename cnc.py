@@ -5,7 +5,7 @@ Command and control for the servers
 """
 
 from optparse import OptionParser
-from os import chdir
+from os import chdir, system
 from os.path import dirname, abspath
 
 proxies_cfg = 'proxy.cfg'
@@ -34,9 +34,10 @@ def start_servers(servs):
   """ Starts the servers:
   @type servs: list of (host, port)
   """
-  argl = map(str, map(lambda t: ':'.join(t), servs))
+  argl = ' '.join(map(str, map(lambda t: ':'.join(t), servs)))
   for i, srv in enumerate(servs):
-    remote_exec(srv, './fresh_start.sh {0} {1}'.format(i, srv))
+    print 'Starting server:', srv
+    remote_exec(srv, './startup.sh {0} {1}'.format(i, argl))
 
 
 def deploy(serv):
@@ -44,13 +45,15 @@ def deploy(serv):
   @type servs: list of (host, port)
   """
   host, port = get_proxy(serv)
-  print 'scp -i keys/id_rsa -P {port} -r * user739@{host}:~'.format(host=host, port=port)
+  system('scp -i keys/id_rsa -P {port} -r * user739@{host}:~'.format(host=host, port=port))
 
 
 if __name__ == '__main__':
   parser = OptionParser()
+  parser.add_option("-d", "--deploy",
+                        action="store_true", dest="deploy", default=False,
+                                          help="don't print status messages to stdout")
   (options, args) = parser.parse_args()
-  options.deploy = True
 
   if len(args) == 0:
     print 'usage: {0} HOST:PORT ...'.format(__file__)
