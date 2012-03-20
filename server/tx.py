@@ -48,9 +48,7 @@ class Tx(object):
     self.net.commit(self)
 
   def ack(self, entry, is_master):
-    log('master:' + str(is_master) + str(type(is_master)))
     assert type(entry.key) is str
-    log(str(self) + " acked by " + str(entry))
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
 
@@ -60,7 +58,6 @@ class Tx(object):
 
     if self.acks >= 3 and self.state == UNCOMMITED:
       self.state = ZOMBIE
-      log('   -> Commit')
       self.commit()
 
     if self.acks == 5:

@@ -168,7 +168,6 @@ class Network(object):
 
         ##print pkt
         self.see(pkt)
-        log(str(pkt))
         self.dispatch(pkt.entry, pkt.seq, pkt.type, pkt.is_master)
         assert type(pkt.entry.key) is str
         self.__flood(addr, data)
