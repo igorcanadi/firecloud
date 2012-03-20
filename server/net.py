@@ -33,7 +33,7 @@ def check(txs):
 
 class Network(object):
   def __init__(self, db, addrs, me, master):
-    self.master = master
+    self.master = bool(master)
     self.me = me
     self.db = db
     self.txs = {}
