@@ -22,7 +22,7 @@ class Datastore(object):
     return self.db[ke]
 
   def __setitem__(self, ke, val):
-    print val
+    #print val
     assert type(ke) is str
     assert type(val) == Entry
     if (ke not in self.db) or (self.db[ke].ts < val.ts):
