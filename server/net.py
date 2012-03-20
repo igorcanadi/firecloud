@@ -43,7 +43,7 @@ class Network(object):
     addrs.remove(me)
     self.addrs = addrs
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    print 'I AM:', me
+    ###print 'I AM:', me
     self.s.bind(me)
     self.next_zombie = check(self.txs)
 
@@ -57,20 +57,20 @@ class Network(object):
 
   def flood(self, pkt):
     assert type(pkt.entry.key) is str
-    print 'Floading: ', pkt
+    ##print 'Floading: ', pkt
     self.__flood(None, pickle.dumps(pkt))
 
   def has_seen(self, pkt):
     return (pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig) in self.seen
 
   def commit(self, tx):
-    print 'Commit: ', tx.entry
+    ##print 'Commit: ', tx.entry
     try:
-      print self.listeners
+      ##print self.listeners
       self.listeners[tx.seq].commit(tx) 
       del self.listeners[tx.seq]
     except KeyError:
-      print 'Didnt find: ', (tx.seq)
+      ##print 'Didnt find: ', (tx.seq)
       pass
 
   def see(self, pkt):
@@ -96,12 +96,12 @@ class Network(object):
         t = tx.Tx(self, seq)
         self.txs[seq] = t
 
-      print '>>>>>> SETTING UPDATE TO:', entry, t
+      ##print '>>>>>> SETTING UPDATE TO:', entry, t
       t.update = entry
       t.ack(self.db[entry.key], m)
       a = self.make_ack(TYPE_PACK, self.db[entry.key], seq)
       self.flood(a)
-      print t
+      ##print t
 
     elif typ == TYPE_PACK:
       try:
@@ -113,11 +113,11 @@ class Network(object):
       t.ack(entry, m)
 
   def clientDispatch(self, data, addr):
-    print data
+    ##print data
     if data[0] == 'G':
       m = self.get.match(data)
       key = m.group(1)
-      print 'Matched to: key: ', key
+      ##print 'Matched to: key: ', key
       opaque = m.group(2)
       value = None
       type_ = TYPE_GET
@@ -125,13 +125,13 @@ class Network(object):
       m = self.put.match(data)
       key = m.group(1)
       value = m.group(2)
-      print 'Matched to: value: ', value
+      ##print 'Matched to: value: ', value
       opaque = m.group(3)
       type_ = TYPE_PUT
 
     ti = time.time()
     r = random.random()
-    print key
+    ##print key
     assert type(key) is str
     e = db.Entry(key, ti, value if type_ == TYPE_PUT else self.db[key].val)
     self.listeners[r] = tx.Listener(self.db, opaque, self.s, addr)
@@ -141,7 +141,7 @@ class Network(object):
       t.ack(e, self.master)
 
 
-    print self.db[key]
+    ##print self.db[key]
     assert type(e.key) is str
     pkt = pickle.dumps(Packet(e, self.master, type_, self.me, r))
     self.s.sendto(pkt, self.me)
@@ -166,7 +166,7 @@ class Network(object):
         if self.has_seen(pkt): 
           continue
 
-        print pkt
+        ##print pkt
         self.see(pkt)
         self.dispatch(pkt.entry, pkt.seq, pkt.type, pkt.is_master)
         assert type(pkt.entry.key) is str
