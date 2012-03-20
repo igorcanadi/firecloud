@@ -30,6 +30,57 @@ def check(t, txs):
       if t.timed_out():
         del txs[key]
 
+class EventLoop(object):
+  def __init__(self, network):
+    self.network = network
+
+  def poll(self):
+    """ Infinitely handle packets as they arrive """
+    for pkt in self.network.poll():
+      self.dispatch(pkt.entry, pkt.seq, pkt.type, pkt.is_master)
+
+  def dispatch(self, entry, seq, typ, m):
+    """ Recieves a packet contents form lower level network layer
+    and dispatches it to the correct higher level handlers.
+    """
+    assert type(entry.key) is str
+    handlers = {
+        TYPE_GACK : self._handle_get_ack,
+        TYPE_GET : self._handle_get,
+        TYPE_PUT : self._handle_put,
+        TYPE_PACK : self._handle_put_ack
+      }
+    assert typ in handlers
+    handlers[typ](entry, seq, typ, m)
+
+  def _handle_get_ack(self, entry, seq, typ, mast):
+    """ Snoop and add it to our DB,
+    count the ACK only if we have an open transaction for it
+    """
+    self.network.db.put(entry)
+    self.network.ack_get_xact(entry, seq, mast)
+
+  def _handle_get(self, entry, seq, typ, mast):
+    """ Flood our current value for that key
+    """
+    self.network.flood_gack_for_key(entry.key, seq)
+
+  def _handle_put(self, entry, seq, typ, mast):
+    """ Open the transaction and flood our ACK of it 
+    """
+    myentry = self.network.db[entry.key]
+    # XXX wtf is update?
+    # XXX FIXME This is really baaaad
+    #self.network.ack_put_xact(myentry, seq, mast, update=True)
+    self.network.flood_pack_for_key(entry.key, seq)
+  
+  def _handle_put_ack(self, entry, seq, typ, mast):
+    """ Record the ACK for the associated transaction
+    """
+    log('PACK for ' + str(entry) + str(mast))
+    self.network.ack_put_xact(entry, seq, mast)
+
+
 class Network(object):
   def __init__(self, db, addrs, me, master):
     self.master = int(master)
@@ -76,41 +127,30 @@ class Network(object):
   def see(self, pkt):
     self.seen.add((pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig))
 
-  def dispatch(self, entry, seq, typ, m):
-    assert type(entry.key) is str
+  def flood_gack_for_key(self, key, seq):
+    self.flood_ack(TYPE_GACK, self.db[key], seq)
 
-    if typ == TYPE_GACK:
-      self.db.put(entry)
-      # don't make a tx for it
-      try:
-        self.txs[seq].ack(entry, m)
-      except KeyError:
-        pass
+  def flood_pack_for_key(self, key, seq):
+    self.flood_ack(TYPE_PACK, self.db[key], seq)
 
-    elif typ == TYPE_GET:
-      self.flood_ack(TYPE_GACK, self.db[entry.key], seq)
-    elif typ == TYPE_PUT:
-      try:
-        t = self.txs[seq]
-      except KeyError:
-        t = tx.Tx(self, seq)
-        self.txs[seq] = t
+  def ack_get_xact(self, entry, seq, mast):
+    try:
+      t = self.txs[seq]
+    except KeyError:
+      return
+    t.ack(entry, mast)
 
-      ##print '>>>>>> SETTING UPDATE TO:', entry, t
+  def ack_put_xact(self, entry, seq, mast, update=False):
+    try:
+      t = self.txs[seq]
+    except KeyError:
+      t = tx.Tx(self, seq)
+      self.txs[seq] = t
+
+    if update:
       t.update = entry
-      t.ack(self.db[entry.key], m)
-      self.flood_ack(TYPE_PACK, self.db[entry.key], seq)
-      ##print t
-
-    elif typ == TYPE_PACK:
-      try:
-        t = self.txs[seq]
-      except KeyError:
-        t = tx.Tx(self, seq)
-        self.txs[seq] = t
-
-      t.ack(entry, m)
-
+    t.ack(entry, mast)
+  
   def clientDispatch(self, data, addr):
     ##print data
     if data[0] == 'G':
@@ -149,11 +189,12 @@ class Network(object):
   def rebroadcast(self, tx):
     self.flood_ack(TYPE_PACK, tx.entry, tx.seq)
 
+
   def poll(self):
     while True:
       if time.time() > self.last_zombie + random.uniform(.5, 2): 
         self.last_zombie = time.time()
-        check(net, self.txs)
+        #check(net, self.txs)
 
       (data, addr) = self.s.recvfrom(10000)
 
@@ -172,6 +213,6 @@ class Network(object):
 
         ##print pkt
         self.see(pkt)
-        self.dispatch(pkt.entry, pkt.seq, pkt.type, pkt.is_master)
+        yield pkt
         assert type(pkt.entry.key) is str
         self.__flood(addr, data)

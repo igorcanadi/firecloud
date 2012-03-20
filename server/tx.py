@@ -17,8 +17,27 @@ TIMEOUT = 2
 ZOMBIE_TIMEOUT = 3
 
 
+STATETBL = {
+    0 : { master : (2, None),
+          normal : (1, None) },
+    1 : { master : (3, COMMIT),
+          normal : (2, None) },
+    2 : { master : (4, COMMIT),
+          normal : (3, COMMIT) },
+    3 : { master : (5, FINISH),
+          normal : (4, None) },
+    4 : { normal : (5, FINISH) },
+    5 : { }
+  }
 
 def transition(state, arrow):
+  try:
+    return STATETBL[state][arrow]
+  except KeyError:
+    log('INVALID State Transition: in state {0} with tranition of {1}'.format(state, arrow))
+    raise Exception('Invalid State Transition -- see log.')
+  return
+
   if state == 0:
     if arrow == master:
       return (2, None);
@@ -74,8 +93,14 @@ class Listener(object):
   def commit(self, tx):
     #print 'Operating on', tx
     #print "::: COMMITTTT'N  UPDATE:", tx.update 
-    if tx.update is not None:
-      self.db.put(tx.update)
+    if tx.entry is not None:
+      self.db.put(tx.entry)
+    else:
+      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
+      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
+      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
+      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
+      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
     #print tx.entry
     # send old (or current) value
     #print "sending to client:"
