@@ -11,5 +11,5 @@ fi
 
 for i in ${who_to_start[@]}; do
     echo "Launching " ${servers[$i]}
-    ssh -i keys/id_rsa -p 22 user739@${servers[$i]} "python server/main.py $i ${servers[0]}:$port ${servers[1]}:$port ${servers[2]}:$port ${servers[3]}:$port" &
+    ssh -i keys/id_rsa -p 22 user739@${servers[$i]} "python server/main.py $i ${servers[0]}:$port ${servers[1]}:$port ${servers[2]}:$port ${servers[3]}:$port 2>/dev/null" &
 done
