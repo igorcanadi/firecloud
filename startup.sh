@@ -1,2 +1,2 @@
 killall -9 python 2> /dev/null
-python server/main.py $@
+nohup python server/main.py $@ &

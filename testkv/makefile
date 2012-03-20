@@ -1,5 +1,5 @@
 all:
-	gcc -o runner runner.c -L. lib739kv.so
+	gcc -o runner runner.c lib739kv.o
 
 clean:
 	rm -f runner

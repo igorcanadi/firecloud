@@ -10,7 +10,7 @@ clk = Clock()
 xcript = Transcript(clk)
 
 
-serv = Server(xcript, '127.0.0.1', '1234')
+serv = Server(xcript, '192.168.56.101', '8808')
 serv1= Server(xcript, '127.0.0.1', '8080')
 serv2= Server(xcript, '127.0.0.1', '8888')
 serv3= Server(xcript, '127.0.0.1', '9988')
