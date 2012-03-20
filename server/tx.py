@@ -56,7 +56,7 @@ class Tx(object):
 
     self.acks += 2 if is_master else 1
 
-    log('   @ ' + str(self.acks) + ' acks; added ' + '2' if is_master else '1')
+    log('   @ ' + str(self.acks) + ' acks; added ' + ('2' if is_master else '1'))
 
     if self.acks >= 3 and self.state == UNCOMMITED:
       self.state = ZOMBIE
