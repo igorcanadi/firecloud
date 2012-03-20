@@ -17,11 +17,16 @@
 #define MAX_SERVERS 4
 #define MAX_VALUE_LEN 2048
 #define MAX_RETURN_LEN 3000
-#define LOG(x, args...) do { \
-        struct timeval tv; \
-        gettimeofday(&tv, NULL); \
-        fprintf(stderr, "[%d.%06d] %s():%d -- " x "\n", tv.tv_sec, tv.tv_usec, __func__, __LINE__, ## args); \
-    } while (false)
+#ifdef VERBOSE
+    #define LOG(x, args...) do { \
+            struct timeval tv; \
+            gettimeofday(&tv, NULL); \
+            fprintf(stderr, "[%d.%06d] %s():%d -- " x "\n", tv.tv_sec, tv.tv_usec, __func__, __LINE__, ## args); \
+        } while (false)
+#else
+    #define LOG(x, args...) do { } while(0)
+#endif
+
 
 char *servers[MAX_SERVERS];
 char killed[MAX_SERVERS];
