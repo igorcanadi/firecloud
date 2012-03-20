@@ -4,8 +4,14 @@ from db import Entry
 from logger import log
 
 UNCOMMITED = 0
+COMMIT = 88
 ZOMBIE = 1
 DEAD = 3
+
+FINISH = 78
+
+normal = 1
+master = 2
 
 TIMEOUT = 2
 ZOMBIE_TIMEOUT = 3
@@ -105,9 +111,9 @@ class Tx(object):
       self.entry = entry
 
     if is_master:
-      self.state, action = transition(self.state, MASTER)
+      self.state, action = transition(self.state, master)
     else:
-      self.state, action = transition(self.state, NORMAL)
+      self.state, action = transition(self.state, normal)
 
     if action == COMMIT:
       self.commit()

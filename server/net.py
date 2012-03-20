@@ -22,7 +22,7 @@ def inc_clock():
   global clock
   clock += 3
 
-def check(txs):
+def check(t, txs):
     for key in txs.keys():
       if t.state == tx.ZOMBIE:
         t.revive()
