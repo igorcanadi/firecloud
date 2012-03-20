@@ -59,7 +59,7 @@ class Network(object):
   def flood(self, pkt):
     assert type(pkt.entry.key) is str
     ##print 'Floading: ', pkt
-    self.__flood(None, pickle.dumps(pkt))
+    self.__flood(None, pickle.dumps(tuple(pkt))
 
   def has_seen(self, pkt):
     return (pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig) in self.seen
@@ -165,7 +165,7 @@ class Network(object):
       if data[0:3] == 'GET' or data[0:3] == 'PUT':
         self.clientDispatch(data, addr)
       else:
-        pkt = pickle.loads(data)
+        pkt = Packet._make(pickle.loads(data))
         if self.has_seen(pkt): 
           continue
 
