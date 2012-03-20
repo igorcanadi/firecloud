@@ -96,9 +96,11 @@ class Network(object):
 
     addrs.remove(me)
     self.addrs = addrs
-    self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self.r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ###print 'I AM:', me
-    self.s.bind(me)
+    self.r.bind(me)
+
+    self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
   def __flood(self, orig, data):
     for a in filter(lambda x: x != orig, self.addrs):
@@ -207,7 +209,7 @@ class Network(object):
         self.last_zombie = now
         #check(net, self.txs, now)
 
-      (data, addr) = self.s.recvfrom(10000)
+      (data, addr) = self.r.recvfrom(10000)
 
       if data[0:3] == 'GET' or data[0:3] == 'PUT':
         log('NET :: ' + data)
