@@ -39,6 +39,7 @@ class Network(object):
     self.seen = set()
     self.get = re.compile("GET (\[.*?\]) (\[.*?\])")
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
+    self.last_zombie = time.time()
 
     addrs.remove(me)
     self.addrs = addrs
@@ -152,9 +153,11 @@ class Network(object):
 
   def poll(self):
     while True:
-      zombie = next(self.next_zombie)
-      if  zombie is not None:
-        self.rebroadcast(zombie)
+      if time.time() > self.last_zombie + 1: 
+        self.last_zombie = time.time()
+        zombie = next(self.next_zombie)
+        if  zombie is not None:
+          self.rebroadcast(zombie)
 
 
       (data, addr) = self.s.recvfrom(10000)
