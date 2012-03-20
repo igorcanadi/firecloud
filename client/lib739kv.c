@@ -136,8 +136,8 @@ int get_me_the_data_with_timeout(int sck, char *ret, int max_ret_size, int timeo
 
     FD_ZERO(&read_fset);
     FD_SET(sck, &read_fset);
-    timeout.tv_sec = 0;
-    timeout.tv_usec = timeout_usec;
+    timeout.tv_sec = timeout_usec / 1000 * 1000;
+    timeout.tv_usec = timeout_usec % (1000 * 1000);
 
     retval = select(sck + 1, &read_fset, NULL, NULL, &timeout);
 
@@ -326,7 +326,7 @@ int kv739_put(char *key, char *value, char *old_value) {
     return retval;
 }
 
-#ifdef DEBUG
+#ifdef CLIENT_MAIN 
 int main() {
     int i;
     char *s[5];
