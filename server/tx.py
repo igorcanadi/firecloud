@@ -49,7 +49,7 @@ class Tx(object):
 
   def ack(self, entry, is_master):
     assert type(entry.key) is str
-    log(self + "acked by" + entry)
+    log(str(self) + "acked by" + str(entry))
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
 
