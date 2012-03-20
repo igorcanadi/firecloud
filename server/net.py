@@ -162,7 +162,7 @@ class Network(object):
         self.clientDispatch(data, addr)
       else:
         t = pickle.loads(data)
-        pkt = Packet._make(db.Entry._make(t[0]), t[1], t[2], t[3], t[4])
+        pkt = Packet._make((db.Entry._make(t[0]), t[1], t[2], t[3], t[4]))
         if self.has_seen(pkt): 
           continue
 
