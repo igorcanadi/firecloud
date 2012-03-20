@@ -85,7 +85,9 @@ void get(header head) {
   fread(&ke, 1, 129, stdin);
 
   
+  unsigned long nao = CURRENT_USEC;
   rcode = kv739_get(&ke, &val);
+  printf("+ -2 %ld\n", CURRENT_USEC - nao);
 
   if (rcode != 0) {
     val[0] = NULL;
@@ -105,7 +107,9 @@ void put(header head) {
   fread(&ke, 1, 129, stdin);
   fread(&val, 1, head.data, stdin);
 
+  unsigned long nao = CURRENT_USEC;
   rcode = kv739_put(&ke, &val, &oldval);
+  printf("+ -2 %ld\n", CURRENT_USEC - nao);
 
   if (rcode != 0) {
     oldval[0] = NULL;
@@ -131,9 +135,9 @@ void loop_stdin() {
   header head;
   int rval;
   while (1) {
-    printf("Doing loop\n");
+    //printf("Doing loop\n");
     rval = fread(&head, 1, sizeof(head), stdin);
-    printf("read %d bytes\n", rval);
+    //printf("read %d bytes\n", rval);
     if (rval < 1) {
       //printf("read returned %d\n", rval);
       //printf("errno %d", errno);
@@ -141,7 +145,7 @@ void loop_stdin() {
       break;
     }
      
-    printf("Seq #%d scheduled for %u\n", head.id, head.time);
+    //printf("Seq #%d scheduled for %u\n", head.id, head.time);
     
     if (head.type == INIT) {
       start_time = head.time * 1000;
@@ -217,7 +221,6 @@ int sleep_until(unsigned long time) {
     exit(1);
   }
   // print slace time
-  printf("+ -2 %ld\n", sleepusec);
   usleep(sleepusec);
   return 0;
 }

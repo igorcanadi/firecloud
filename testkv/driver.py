@@ -21,7 +21,7 @@ sys = Client(clk, [serv])
 
 kv = sys.store
 
-for i in xrange(150):
+for i in xrange(50):
   kv['foo'] = 'bar'
   kv['foo___'+str(i)]
 
@@ -40,9 +40,12 @@ print 'Thread 1 ran for: run time={0}, dead_time={1} slack={2}'.format( cli.runt
 
 effective_time = cli.runtime - cli.ctrace.slack
 
+print 'C-Runtime (msec):', cli.ctrace.runtime
+
 print 'effecitve run time (not sleeping), seconds: ', effective_time
 
-print 'Mean Time per Request (ms): ', effective_time * 1000 / cli.ctrace.reqcount
+print 'Mean Time per Request (ms): ', cli.runtime * 1000 / cli.ctrace.reqcount
+print '(Effective) Mean Time per Request (ms): ', effective_time * 1000 / cli.ctrace.reqcount
 
 print 'Slack % = {0}'.format(cli.ctrace.slack *1.0/ (cli.runtime - dead_time) * 100)
 
@@ -51,4 +54,4 @@ print 'Slack % = {0}'.format(cli.ctrace.slack *1.0/ (cli.runtime - dead_time) * 
 
 #print replay_gets_into_dict(cli.ctrace)
 
-print 'cli errors', eval_strict_ordering(cli.ctrace)
+print 'strict ordering errors', eval_strict_ordering(cli.ctrace)

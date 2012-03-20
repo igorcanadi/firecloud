@@ -9,10 +9,11 @@ from threading import Thread
 ERROR_CODE = 0xDEADBEEF
 
 class ClientTrace(object):
-  def __init__(self, trace, slack, reqcount):
+  def __init__(self, trace, slack, reqcount, runtime):
     self.slack = slack
     self.trace = trace
     self.reqcount = reqcount
+    self.runtime = runtime
 
   def __iter__(self):
     return self.trace.__iter__()
@@ -85,7 +86,8 @@ class ClientThread(Thread):
   def run(self):
     start = time_.time()
     self.ctrace = run_transcript(self.tups)
-    self.runtime = time_.time() - start
+    self.slow_runtime = time_.time() - start
+    self.runtime = self.ctrace.runtime
 
 
 
@@ -160,6 +162,8 @@ def reconstruct(text, tups):
   construct = []
   usec_slack = 0
   reqcount = 0
+  first_time_stamp = None
+  last_time_stamp = None
   for line in text.split('\n'):
     if len(line) == 0 or line[0] != '+':
       continue
@@ -181,6 +185,9 @@ def reconstruct(text, tups):
       i = txt.index(' ')
       msec, txt= txt[0:i], txt[i+1:]
       msec = int(msec) / 1000.0
+      if first_time_stamp is None:
+        first_time_stamp = msec
+      last_time_stamp = msec
       i = txt.index(' ')
       code, txt= txt[0:i], txt[i+1:]
       code = int(code)
@@ -196,7 +203,7 @@ def reconstruct(text, tups):
       construct.append((tick, msec, tickmap[tick], txt))
   print 'Reconstructed to:', construct
   print 'usec slack: ', usec_slack
-  return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0), reqcount)
+  return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0), reqcount, last_time_stamp-first_time_stamp)
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )
 
