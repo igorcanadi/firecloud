@@ -206,7 +206,7 @@ int sleep_until(unsigned long time) {
   if (offset > time) {
     /* this time has passed. too late */
     //printf("Too Late! %ld > %ld\n", offset, time);
-    printf("+ -2 %d\n", time - offset);
+    //printf("+ -2 %d\n", time - offset);
     return offset - time;
   }
   /* to sleep: */
@@ -217,7 +217,7 @@ int sleep_until(unsigned long time) {
     exit(1);
   }
   // print slace time
-  printf("+ -2 %d\n", sleepusec);
+  printf("+ -2 %ld\n", sleepusec);
   usleep(sleepusec);
   return 0;
 }

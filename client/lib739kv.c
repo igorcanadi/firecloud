@@ -36,7 +36,7 @@ int last_unique_id;
 struct sockaddr_in server_addresses[MAX_SERVERS];
 // first element is micro timeout
 // second element is macro - micro timeout
-int timeouts[2] = {3000, 7000};
+int timeouts[2] = {3 * 1000 * 1000, 7 * 1000 * 1000};
 
 // -1 on failure
 // 0 on ok
