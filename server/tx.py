@@ -10,6 +10,54 @@ DEAD = 3
 TIMEOUT = 2
 ZOMBIE_TIMEOUT = 3
 
+
+
+def transition(state, arrow):
+  if state == 0:
+    if arrow == master:
+      return (2, None);
+    elif arrow == normal:
+      return (1, None);
+    else:
+      assert(0)
+
+  if state == 1:
+    if arrow == master:
+      return (3, COMMIT);
+    elif arrow == normal:
+      return (2, None);
+    else:
+      assert(0)
+
+  if state == 2:
+    if arrow == master:
+      return (4, COMMIT);
+    elif arrow == normal:
+      return (3, COMMIT);
+    else:
+      assert(0)
+
+  if state == 3:
+    if arrow == master:
+      return (5, FINISH);
+    elif arrow == normal:
+      return (4, None);
+    else:
+      assert(0)
+
+  if state == 4:
+    if arrow == master:
+      assert(0)
+    elif arrow == normal:
+      return (5, FINISH);
+    else:
+      assert(0)
+
+  if state == 5:
+    assert(0)
+
+
+
 class Listener(object):
   def __init__(self, db, opaque, sock, addr):
     self.opaque = opaque
@@ -31,9 +79,8 @@ class Listener(object):
 class Tx(object):
   def __init__(self, net, seq):
     self.entry = None
-    self.acks = 0
+    self.state = 0
     self.seq = seq
-    self.state = UNCOMMITED
     self.start = time.time()
     self.update = None
     self.net = net
@@ -41,8 +88,13 @@ class Tx(object):
   def timed_out(self):
     return time.time() > self.start + TIMEOUT
 
-  def zombie_out(self):
-    return time.time() > self.start + ZOMBIE_TIMEOUT
+  def zombie(self):
+    if time.time() > self.start + ZOMBIE_TIMEOUT:
+      self.net.rebroadcast(self)
+      self.net.finish(self)
+
+  def finish(self):
+    self.net.finish(self)
 
   def commit(self):
     self.net.commit(self)
@@ -52,13 +104,12 @@ class Tx(object):
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
 
-    self.acks += 2 if is_master else 1
+    if is_master:
+      self.state, action = transition(self.state, MASTER)
+    else:
+      self.state, action = transition(self.state, NORMAL)
 
-    log('   @ ' + str(self.acks) + ' acks; added ' + ('2' if is_master else '1'))
-
-    if self.acks >= 3 and self.state == UNCOMMITED:
-      self.state = ZOMBIE
+    if action == COMMIT:
       self.commit()
-
-    if self.acks == 5:
-      self.state = DEAD
+    elif action == FINISH:
+      self.finish()

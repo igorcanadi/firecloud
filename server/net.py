@@ -9,27 +9,26 @@ import random
 
 from logger import log
 
-Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq'])
+Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq', 'clock'])
 
 TYPE_PUT = 'P'
 TYPE_PACK = 'A'
 TYPE_GET = 'G'
 TYPE_GACK = 'H'
 
+clock = 0
+
+def inc_clock():
+  global clock
+  clock += 3
+
 def check(txs):
-  while True:
-    keys = txs.keys()
-    for key in keys:
-      t = txs[key]
-      if t.state == tx.DEAD:
+    for key in txs.keys():
+      if t.state == tx.ZOMBIE:
+        t.revive()
+        return
+      if t.timed_out():
         del txs[key]
-      elif t.state == tx.ZOMBIE:
-        if t.zombie_out(): 
-          del txs[key]
-          yield t;
-      elif t.timed_out():
-        del txs[key]
-    yield None
 
 class Network(object):
   def __init__(self, db, addrs, me, master):
@@ -48,7 +47,6 @@ class Network(object):
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ###print 'I AM:', me
     self.s.bind(me)
-    self.next_zombie = check(self.txs)
 
   def __flood(self, orig, data):
     for a in filter(lambda x: x != orig, self.addrs):
@@ -56,7 +54,8 @@ class Network(object):
 
   def flood_ack(self, t, entry, seq):
     assert type(entry.key) is str
-    self.__flood(None, pickle.dumps((tuple(entry), self.master, t, self.me, seq), 2))
+    inc_clock()
+    self.__flood(None, pickle.dumps((tuple(entry), self.master, t, self.me, seq, clock), 2))
 
   def has_seen(self, pkt):
     return (pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig) in self.seen
@@ -70,6 +69,9 @@ class Network(object):
     except KeyError:
       ##print 'Didnt find: ', (tx.seq)
       pass
+
+  def finish(self, tx):
+    del self.txs[tx.seq]
 
   def see(self, pkt):
     self.seen.add((pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig))
@@ -126,11 +128,11 @@ class Network(object):
       opaque = m.group(3)
       type_ = TYPE_PUT
 
-    ti = time.time()
+    inc_clock()
     r = random.random()
     ##print key
     assert type(key) is str
-    e = db.Entry(key, ti, value if type_ == TYPE_PUT else self.db[key].val)
+    e = db.Entry(key, clock, value if type_ == TYPE_PUT else self.db[key].val)
     self.listeners[r] = tx.Listener(self.db, opaque, self.s, addr)
     if type_ == TYPE_GET:
       t = tx.Tx(self, r)
@@ -140,7 +142,8 @@ class Network(object):
 
     ##print self.db[key]
     assert type(e.key) is str
-    pkt = pickle.dumps((tuple(e), self.master, type_, self.me, r), 2)
+    inc_clock()
+    pkt = pickle.dumps((tuple(e), self.master, type_, self.me, r, clock), 2)
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
@@ -148,12 +151,9 @@ class Network(object):
 
   def poll(self):
     while True:
-      if time.time() > self.last_zombie + 1: 
+      if time.time() > self.last_zombie + random.uniform(.5, 2): 
         self.last_zombie = time.time()
-        zombie = next(self.next_zombie)
-        if  zombie is not None:
-          self.rebroadcast(zombie)
-
+        check(net, self.txs)
 
       (data, addr) = self.s.recvfrom(10000)
 
@@ -162,7 +162,11 @@ class Network(object):
         self.clientDispatch(data, addr)
       else:
         t = pickle.loads(data)
-        pkt = Packet._make((db.Entry._make(t[0]), t[1], t[2], t[3], t[4]))
+
+        global clock
+        clock = max(t[5], clock) + 1
+
+        pkt = Packet._make((db.Entry._make(t[0]), t[1], t[2], t[3], t[4], t[5]))
         if self.has_seen(pkt): 
           continue
 
