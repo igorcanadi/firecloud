@@ -56,7 +56,7 @@ class Network(object):
 
   def flood_ack(self, t, entry, seq):
     assert type(entry.key) is str
-    self.__flood(pickle.dumps((tuple(entry), self.master, t, self.me, seq)))
+    self.__flood(pickle.dumps((tuple(entry), self.master, t, self.me, seq)), 2)
 
   def has_seen(self, pkt):
     return (pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig) in self.seen
@@ -140,8 +140,7 @@ class Network(object):
 
     ##print self.db[key]
     assert type(e.key) is str
-    t_e = tuple(e)
-    pkt = pickle.dumps(t_e, self.master, type_, self.me, r)
+    pkt = pickle.dumps(tuple(e), self.master, type_, self.me, r), 2)
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
