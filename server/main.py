@@ -11,6 +11,8 @@ def main(idx, master, addrs):
   log('main init with:' + str(addrs))
   d = db.Datastore()
   me = addrs[int(idx)]
+  log('I am:' + str(me))
+  log('master is:' + str(master))
   #print 'Starting as {0} as master? {1}'.format(me, master)
   n = net.Network(d, addrs, me, master)
   n.poll()
