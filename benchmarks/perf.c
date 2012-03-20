@@ -22,7 +22,7 @@ int main() {
     sprintf(t1, "k..");
     sprintf(t2, "k..");
     sprintf(t3, "yay");
-    sprintf(t3, "wohoooooo");
+    sprintf(t4, "wohoooooo");
 
     for (i = 0; i < 300; ++i) {
         t1[1] = rand()%3 + '0';
