@@ -7,3 +7,7 @@ client/t
 client/a.out
 benchmarks/*.o
 benchmarks/perf
+testkv/runner
+testkv/lib739kv.so
+testkv/lib739kv.o
+testkv/raw_transcript
