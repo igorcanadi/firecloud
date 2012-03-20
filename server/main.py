@@ -2,8 +2,11 @@ import db
 import net
 import sys
 
+from logger import log
+
 
 def main(idx, master, addrs):
+  log('main init with:' + str(addrs))
   d = db.Datastore()
   me = addrs[int(idx)]
   print 'Starting as {0} as master? {1}'.format(me, master)
@@ -28,4 +31,9 @@ print addrs, sortd
 if addrs[idx] == sortd[0]:
   master = '1'
 
-main(idx, master, addrs)
+try:
+  log('starting v2.0!')
+  main(idx, master, addrs)
+except Exception, e:
+  log('ERROR')
+  log(str(e))

@@ -7,6 +7,8 @@ import db
 import time
 import random
 
+from logger import log
+
 Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq'])
 
 TYPE_PUT = 'P'
@@ -157,6 +159,7 @@ class Network(object):
       (data, addr) = self.s.recvfrom(10000)
 
       if data[0:3] == 'GET' or data[0:3] == 'PUT':
+        log('NET :: ' + data)
         self.clientDispatch(data, addr)
       else:
         t = pickle.loads(data)

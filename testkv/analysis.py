@@ -44,7 +44,9 @@ def merge_traces(t0, t1):
   joint = t0.trace[:]
   joint[0:0] = t1.trace[:]
   joint = sorted(joint, key=lambda x: x[1])
-  return ClientTrace(joint, t0.slack + t1.slack)
+  return ClientTrace(joint, t0.slack + t1.slack,
+                     t0.reqcount+t1.reqcount,
+                     0)
   
 
 def eval_strict_ordering(ctrace):
@@ -58,13 +60,13 @@ def eval_strict_ordering(ctrace):
     if isinstance(evt, Put):
       oldv = kv[evt.ke]
       if oldv != resl:
-        print 'Expected', oldv, resl
+        print tick, 'Expected', oldv, resl
         errors += 1
       kv[evt.ke] = evt.val
     elif isinstance(evt, Get):
       oldv = kv[evt.ke]
       if oldv != resl:
-        print 'Expected', oldv, resl
+        print tick, 'Expected', oldv, resl
         errors += 1
         # correct for the error
         kv[evt.ke] = resl

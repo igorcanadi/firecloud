@@ -10,5 +10,5 @@ fi
 
 for i in ${who_to_kill[@]}; do
     echo "Killing " ${servers[$i]}
-    ssh -i keys/id_rsa user739@localhost -p ${ports[$i]} "kill \`lsof | grep ${port} | awk '{print \$2}'\` 2> /dev/null"
+    ssh -i keys/id_rsa user739@${servers[$i]} "kill \`lsof | grep ${port} | awk '{print \$2}'\` 2> /dev/null"
 done

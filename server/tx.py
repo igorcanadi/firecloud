@@ -1,6 +1,8 @@
 import time
 from db import Entry
 
+from logger import log
+
 UNCOMMITED = 0
 ZOMBIE = 1
 DEAD = 3
@@ -23,7 +25,7 @@ class Listener(object):
     #print tx.entry
     # send old (or current) value
     #print "sending to client:"
-    #print "OK %s %s" % (self.opaque, tx.entry.val)
+    log('TX to Client :: OK %s %s' % (self.opaque, tx.entry.val))
     self.sock.sendto("OK %s %s" % (self.opaque, tx.entry.val), self.addr)
 
 class Tx(object):
