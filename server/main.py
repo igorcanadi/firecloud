@@ -2,6 +2,8 @@ import db
 import net
 import sys
 
+import traceback
+
 from logger import log
 
 
@@ -9,7 +11,7 @@ def main(idx, master, addrs):
   log('main init with:' + str(addrs))
   d = db.Datastore()
   me = addrs[int(idx)]
-  print 'Starting as {0} as master? {1}'.format(me, master)
+  #print 'Starting as {0} as master? {1}'.format(me, master)
   n = net.Network(d, addrs, me, master)
   n.poll()
 
@@ -27,7 +29,7 @@ for a in sys.argv[2:]:
 master = '0'
 
 sortd = sorted(addrs)
-print addrs, sortd
+#print addrs, sortd
 if addrs[idx] == sortd[0]:
   master = '1'
 
@@ -36,4 +38,4 @@ try:
   main(idx, master, addrs)
 except Exception, e:
   log('ERROR')
-  log(str(e))
+  log(traceback.format_exc())
