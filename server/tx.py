@@ -93,14 +93,9 @@ class Listener(object):
   def commit(self, tx):
     #print 'Operating on', tx
     #print "::: COMMITTTT'N  UPDATE:", tx.update 
-    if tx.entry is not None:
-      self.db.put(tx.entry)
-    else:
-      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
-      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
-      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
-      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
-      log('~~~~~~~~~~~~~~~~~~~~~Major Error in tx commit!')
+    #if tx.entry is not None:
+      # This is execute iff it is a PUT tx
+    #  self.db.put(tx.entry)
     #print tx.entry
     # send old (or current) value
     #print "sending to client:"
@@ -112,8 +107,8 @@ class Tx(object):
     self.entry = None
     self.state = 0
     self.seq = seq
-    self.start = time.time()
     self.update = None
+    self.start = time.time()
     self.net = net
 
   def timed_out(self):

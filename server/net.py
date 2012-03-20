@@ -71,7 +71,7 @@ class EventLoop(object):
     myentry = self.network.db[entry.key]
     # XXX wtf is update?
     # XXX FIXME This is really baaaad
-    #self.network.ack_put_xact(myentry, seq, mast, update=True)
+    self.network.set_put_xact_value(entry, seq)
     self.network.flood_pack_for_key(entry.key, seq)
   
   def _handle_put_ack(self, entry, seq, typ, mast):
@@ -113,13 +113,16 @@ class Network(object):
 
   def commit(self, tx):
     ##print 'Commit: ', tx.entry
+    log('COMMIT: %s' % str(tx.update))
     try:
       ##print self.listeners
       self.listeners[tx.seq].commit(tx) 
       del self.listeners[tx.seq]
     except KeyError:
-      ##print 'Didnt find: ', (tx.seq)
       pass
+      ##print 'Didnt find: ', (tx.seq)
+    if tx.update is not None:
+      self.db.put(tx.update)
 
   def finish(self, tx):
     del self.txs[tx.seq]
@@ -140,6 +143,15 @@ class Network(object):
       return
     t.ack(entry, mast)
 
+  def set_put_xact_value(self, entry, seq):
+    try:
+      t = self.txs[seq]
+    except KeyError:
+      t = tx.Tx(self, seq)
+      self.txs[seq] = t
+    log(':: Set Xact Update to ' + str(entry))
+    t.update = entry
+
   def ack_put_xact(self, entry, seq, mast, update=False):
     try:
       t = self.txs[seq]
@@ -147,8 +159,6 @@ class Network(object):
       t = tx.Tx(self, seq)
       self.txs[seq] = t
 
-    if update:
-      t.update = entry
     t.ack(entry, mast)
   
   def clientDispatch(self, data, addr):
@@ -178,7 +188,6 @@ class Network(object):
       t = tx.Tx(self, r)
       self.txs[r] = t
       t.ack(e, self.master)
-
 
     ##print self.db[key]
     assert type(e.key) is str
