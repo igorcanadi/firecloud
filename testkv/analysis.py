@@ -25,6 +25,7 @@ class KVAnalysis(object):
 def count_errors(ctrace):
   for tick, sec, evt, txt in ctrace:
     if tick < last_tick:
+      pass
 
 
 

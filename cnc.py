@@ -23,7 +23,8 @@ def _remote_exec(gate, cmd):
   #retval = subprocess.call(command, shell=True)
   #if retval != 0:
   #    return retval
-  print 'ssh -i keys/id_rsa -p {0[1]} user739@{0[0]} \"nohup {1} &\"'.format(gate, cmd)
+  print 'ssh -i keys/id_rsa -p {0[1]} user739@{0[0]} \"{1}\"'.format(gate, cmd)
+  system('ssh -i keys/id_rsa -p {0[1]} user739@{0[0]} \"{1}\" &'.format(gate, cmd))
 
 
 def remote_exec(serv, cmd):

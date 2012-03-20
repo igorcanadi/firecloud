@@ -321,6 +321,7 @@ int kv739_put(char *key, char *value, char *old_value) {
     return retval;
 }
 
+#ifdef DEBUG
 int main() {
     int i;
     char *s[5];
@@ -352,3 +353,4 @@ int main() {
 
     return 0;
 }
+#endif
