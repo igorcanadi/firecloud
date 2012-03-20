@@ -9,9 +9,10 @@ from threading import Thread
 ERROR_CODE = 0xDEADBEEF
 
 class ClientTrace(object):
-  def __init__(self, trace, slack):
+  def __init__(self, trace, slack, reqcount):
     self.slack = slack
     self.trace = trace
+    self.reqcount = reqcount
 
   def __iter__(self):
     return self.trace.__iter__()
@@ -158,6 +159,7 @@ def reconstruct(text, tups):
   tickmap = dict([(tick, evt) for ti, tick, evt in tups])
   construct = []
   usec_slack = 0
+  reqcount = 0
   for line in text.split('\n'):
     if len(line) == 0 or line[0] != '+':
       continue
@@ -174,6 +176,7 @@ def reconstruct(text, tups):
     elif tick == -2:
       usec_slack += int(txt)
     else:
+      reqcount += 1
       # Handle a GET or PUT
       i = txt.index(' ')
       msec, txt= txt[0:i], txt[i+1:]
@@ -192,7 +195,8 @@ def reconstruct(text, tups):
         txt = '[]'
       construct.append((tick, msec, tickmap[tick], txt))
   print 'Reconstructed to:', construct
-  return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0))
+  print 'usec slack: ', usec_slack
+  return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0), reqcount)
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )
 

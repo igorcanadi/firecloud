@@ -23,10 +23,11 @@ class KVAnalysis(object):
 
 
 def count_errors(ctrace):
+  count = 0
   for tick, sec, evt, txt in ctrace:
-    if tick < last_tick:
-      pass
-
+    if txt is None:
+      count += 1
+  return count
 
 
 def ticks_in_order(ctrace):
