@@ -37,7 +37,7 @@ int last_unique_id;
 struct sockaddr_in server_addresses[MAX_SERVERS];
 // first element is micro timeout
 // second element is macro - micro timeout
-int timeouts[2] = {3 * 1000 * 1000, 7 * 1000 * 1000};
+int timeouts[2] = {1 * 1000 * 1000, 3 * 1000 * 1000};
 
 // -1 on failure
 // 0 on ok
@@ -137,7 +137,7 @@ int get_me_the_data_with_timeout(int sck, char *ret, int max_ret_size, int timeo
 
     FD_ZERO(&read_fset);
     FD_SET(sck, &read_fset);
-    timeout.tv_sec = timeout_usec / 1000 * 1000;
+    timeout.tv_sec = timeout_usec / (1000 * 1000);
     timeout.tv_usec = timeout_usec % (1000 * 1000);
 
     retval = select(sck + 1, &read_fset, NULL, NULL, &timeout);
