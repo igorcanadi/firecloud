@@ -1,5 +1,4 @@
 from collections import namedtuple
-from time import time
 from logger import log
 
 

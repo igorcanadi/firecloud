@@ -111,11 +111,11 @@ class Tx(object):
     self.start = time.time()
     self.net = net
 
-  def timed_out(self):
-    return time.time() > self.start + TIMEOUT
+  def timed_out(self, tim):
+    return now > self.start + TIMEOUT
 
-  def zombie(self):
-    if time.time() > self.start + ZOMBIE_TIMEOUT:
+  def revive(self, now):
+    if now > self.start + ZOMBIE_TIMEOUT:
       self.net.rebroadcast(self)
       self.net.finish(self)
 

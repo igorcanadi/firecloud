@@ -22,13 +22,14 @@ def inc_clock():
   global clock
   clock += 3
 
-def check(t, txs):
-    for key in txs.keys():
-      if t.state == tx.ZOMBIE:
-        t.revive()
-        return
-      if t.timed_out():
-        del txs[key]
+def check(t, net, now):
+  for key in net.txs.keys():
+    t = net.txs[key]
+    if t.state == tx.ZOMBIE:
+      t.revive(now)
+      return
+    if t.timed_out(now):
+      del txs[key]
 
 class EventLoop(object):
   def __init__(self, network):
@@ -201,9 +202,10 @@ class Network(object):
 
   def poll(self):
     while True:
-      if time.time() > self.last_zombie + random.uniform(.5, 2): 
-        self.last_zombie = time.time()
-        #check(net, self.txs)
+      now = time.time()
+      if now > self.last_zombie + random.uniform(.5, 2): 
+        self.last_zombie = now
+        #check(net, self.txs, now)
 
       (data, addr) = self.s.recvfrom(10000)
 
