@@ -49,17 +49,15 @@ class Tx(object):
 
   def ack(self, entry, is_master):
     assert type(entry.key) is str
-    #print self, "acked by", entry
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
 
     self.acks += 2 if is_master else 1
 
-    #print '   @', self.acks, 'acks'
+    log('   @ ' + str(self.acks) + ' acks; added ' + ('2' if is_master else '1'))
 
     if self.acks >= 3 and self.state == UNCOMMITED:
       self.state = ZOMBIE
-      #print '   -> Commit'
       self.commit()
 
     if self.acks == 5:
