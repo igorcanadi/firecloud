@@ -52,14 +52,9 @@ class Network(object):
     for a in filter(lambda x: x != orig, self.addrs):
       self.s.sendto(data, a)
 
-  def make_ack(self, t, entry, seq):
+  def flood_ack(self, t, entry, seq):
     assert type(entry.key) is str
-    return Packet(entry, self.master, t, self.me, seq)
-
-  def flood(self, pkt):
-    assert type(pkt.entry.key) is str
-    ##print 'Floading: ', pkt
-    self.__flood(None, pickle.dumps(tuple(pkt))
+    self.__flood(pickle.dumps((tuple(entry), self.master, t, self.me, seq)))
 
   def has_seen(self, pkt):
     return (pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig) in self.seen
@@ -89,7 +84,7 @@ class Network(object):
         pass
 
     elif typ == TYPE_GET:
-      self.flood(self.make_ack(TYPE_GACK, self.db[entry.key], seq))
+      self.flood_ack(TYPE_GACK, self.db[entry.key], seq)
     elif typ == TYPE_PUT:
       try:
         t = self.txs[seq]
@@ -100,8 +95,7 @@ class Network(object):
       ##print '>>>>>> SETTING UPDATE TO:', entry, t
       t.update = entry
       t.ack(self.db[entry.key], m)
-      a = self.make_ack(TYPE_PACK, self.db[entry.key], seq)
-      self.flood(a)
+      self.flood_ack(TYPE_PACK, self.db[entry.key], seq)
       ##print t
 
     elif typ == TYPE_PACK:
@@ -144,12 +138,12 @@ class Network(object):
 
     ##print self.db[key]
     assert type(e.key) is str
-    pkt = pickle.dumps(Packet(e, self.master, type_, self.me, r))
+    t_e = tuple(e)
+    pkt = pickle.dumps(t_e, self.master, type_, self.me, r)
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
-    a = self.make_ack(TYPE_PACK, tx.entry, tx.seq)
-    self.flood(a)
+    self.flood_ack(TYPE_PACK, tx.entry, tx.seq)
 
   def poll(self):
     while True:
@@ -165,7 +159,8 @@ class Network(object):
       if data[0:3] == 'GET' or data[0:3] == 'PUT':
         self.clientDispatch(data, addr)
       else:
-        pkt = Packet._make(pickle.loads(data))
+        t = pickle.loads(data)
+        pkt = Packet._make(Entry._make(t[0]), t[1], t[2], t[3], t[4])
         if self.has_seen(pkt): 
           continue
 
