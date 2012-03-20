@@ -140,7 +140,7 @@ class Network(object):
 
     ##print self.db[key]
     assert type(e.key) is str
-    pkt = pickle.dumps(tuple(e), self.master, type_, self.me, r), 2)
+    pkt = pickle.dumps((tuple(e), self.master, type_, self.me, r), 2)
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
