@@ -191,7 +191,7 @@ class Network(object):
       t = tx.Tx(self, r)
       self.txs[r] = t
       log("am I master? " + str(self.master))
-      t.ack(e, self.master)
+      #t.ack(e, self.master)
 
     ##print self.db[key]
     assert type(e.key) is str
