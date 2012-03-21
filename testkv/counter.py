@@ -6,8 +6,6 @@ from cout import run_transcript, ClientThread
 from analysis import replay_gets_into_dict, merge_traces, \
                     eval_strict_ordering, count_errors
 
-from time import time
-
 clk = Clock()
 xcript = Transcript(clk)
 
@@ -24,15 +22,19 @@ sys = Client(clk, [serv])
 kv = sys.store
 
 for i in xrange(50):
-  kv['foo'] = 'bar'
-  kv['foo___'+str(i)]
+  kv['foo'] = 'bar' + str(i)
+  kv['foo']
 
 
 
 
 cli, plan, dead_time = build_plan(sys, CLOCK_RATE)
 
-cli.abstime = int(time() * 1000) + 1000
+network[(serv, serv1)] = False
+
+ignore, plan, dead_time = build_plan(network, CLOCK_RATE)
+
+print plan
 
 cli.start()
 

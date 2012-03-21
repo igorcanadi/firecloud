@@ -82,24 +82,26 @@ class ClientThread(Thread):
     self.tups = tups
     self.log = None
     self.slack = None
+    self.abstime = None
 
   def run(self):
     start = time_.time()
-    self.ctrace = run_transcript(self.tups)
+    assert self.abstime is not None
+    self.ctrace = run_transcript(self.tups, self.abstime)
     self.slow_runtime = time_.time() - start
     self.runtime = self.ctrace.runtime
 
 
 
 
-def write_out(time, seq, itm, out):
+def write_out(abstime, time, seq, itm, out):
   data = 0
   if type(itm) == Put:
     data = len(itm.val) + 1 # for the null
   elif type(itm) == Init:
     print 'Doing init -------------'
     data = len(itm.servers)
-    time = int(time_.time() * 1000) + SYNC_WINDOW
+    time = abstime
   print "Seq #%s scheduled for %s" % (seq, time)
   head = pack(HEADER, time, seq, codes[type(itm)], data)
   print 'Built header for: ', codes[type(itm)]
@@ -125,18 +127,14 @@ def write_out(time, seq, itm, out):
     out('\0')
 
 
-def run_transcript(tups):
+def run_transcript(tups, abstime):
   buf = Buffer_()
   for ti, tick, evt in tups:
-    write_out(int(ti), tick, evt, buf.write)
+    write_out(abstime, int(ti), tick, evt, buf.write)
   p = Popen(['./runner'], stdin=PIPE, stderr=STDOUT, stdout=PIPE)
-  print 'writing to the proc'
-  print 'writing %d bytes' % len(buf.buf)
-  print 'raw written to file'
   with open('raw_transcript', 'w') as f:
     f.write(buf.buf)
   out, err = p.communicate(input=buf.buf)
-  print 'Output is: ', out
   return reconstruct(out, tups)
 
 def fake_run_transcript(tups):
@@ -169,7 +167,6 @@ def reconstruct(text, tups):
       continue
     # ignore leading '+ '
     line = line[2:]
-    print ':: Reconstructing:', line
     line.lstrip(' ')
     i = line.index(' ')
     tick, txt = line[0:i], line[i+1:]
@@ -201,8 +198,6 @@ def reconstruct(text, tups):
         # no previous key
         txt = '[]'
       construct.append((tick, msec, tickmap[tick], txt))
-  print 'Reconstructed to:', construct
-  print 'usec slack: ', usec_slack
   return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0), reqcount, last_time_stamp-first_time_stamp)
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )
