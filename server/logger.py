@@ -2,7 +2,7 @@
 from time import time
 
 LOG_FILE = '/tmp/server.log'
-VERBOSE = 1
+VERBOSE = 0
 
 def log(txt):
   if VERBOSE:

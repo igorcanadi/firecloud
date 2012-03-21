@@ -30,15 +30,15 @@ for i in xrange(100):
 
 
 
-for clk in xrange(1, 30, 2):
+for clk in xrange(10):
   cli, plan, dead_time = build_plan(sys, CLOCK_RATE)
   cli.abstime = int(time() * 1000) + 100
   cli.start()
   cli.join()
-  if count_errors(cli.trace) != 0:
-    raise Exceptin('Too many errors: '+ str(count_errors(cli.trace)) )
-  rate = (cli.ctrace.slack * 1.0 / cli.ctrace.reqcount)
-  print 'msec / req : ', rate
+  if count_errors(cli.ctrace) != 0:
+    raise Exception('Too many errors: '+ str(count_errors(cli.trace)) )
+  rate = (cli.ctrace.slack * 1000.0 / cli.ctrace.reqcount)
+  print '@{0}ms clock, msec / req : {1}'.format(clk, rate)
 
 raise SystemExit
 

@@ -209,11 +209,21 @@ class Network(object):
 
       (data, addr) = self.r.recvfrom(10000)
 
+      if data[0:4] == 'ping':
+        self.s.sendto('pong', addr)
+        continue
+
+
       if data[0:3] == 'GET' or data[0:3] == 'PUT':
         log('NET :: ' + data)
         self.clientDispatch(data, addr)
       else:
-        t = pickle.loads(data)
+        try:
+          t = pickle.loads(data)
+        except:
+          log('Got bad packet: ' + str(data))
+          continue
+
 
         global clock
         clock = max(t[5], clock) + 1

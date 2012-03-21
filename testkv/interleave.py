@@ -12,8 +12,8 @@ clk = Clock()
 xcript = Transcript(clk)
 
 
-serv = Server(xcript, '192.168.56.101', '8808')
-serv1 = Server(xcript, '192.168.56.102', '8808')
+serv = Server(xcript, '192.168.56.103', '8808')
+serv1 = Server(xcript, '192.168.56.104', '8808')
 network = Network([serv, serv1], xcript)
 
 sys = Client(clk, [serv])
@@ -23,10 +23,10 @@ sys2 = Client(clk, [serv1])
 kv = sys.store
 kv2 = sys2.store
 
-for i in xrange(10):
-  kv['foo'] = 'bar'
+for i in xrange(20):
+  kv['foo'] = 'bar' + str(i)
   kv2['foo']
-  kv2['foo'] = 'bar2'
+  kv2['foo'] = 'bar_' + str(i)
   kv['foo']
   
 
@@ -60,10 +60,6 @@ print 'effecitve run time (not sleeping), seconds: ', effective_time
 
 print 'Mean Time per Request (ms): ', cli.runtime * 1000 / cli.ctrace.reqcount
 print '(Effective) Mean Time per Request (ms): ', effective_time * 1000 / cli.ctrace.reqcount
-
-print 'Slack % = {0}'.format(cli.ctrace.slack *1.0/ (cli.runtime - dead_time) * 100)
-
-print 'strict ordering errors cli1', eval_strict_ordering(cli.ctrace)
 
 mrg = merge_traces(cli.ctrace, cli2.ctrace)
 

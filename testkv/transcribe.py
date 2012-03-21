@@ -43,7 +43,6 @@ def build_plan(sys, rate):
   plan = []
   
 
-  print "log length: ", len(sys.xcript.log)
   msec_slack = 0
   for tick, evt in sys.xcript.log:
     if (tick - last_tick) > 1:
