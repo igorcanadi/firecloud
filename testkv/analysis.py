@@ -98,3 +98,9 @@ def replay_gets_into_dict(ctrace):
     if isinstance(evt, Get):
       d[evt.ke] = resl
   return d
+
+def check_traces_ordering(traces):
+  graph = {}
+  for tick, ti, evt, resl in ctrace:
+    graph[resl] = evt.val
+

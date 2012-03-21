@@ -39,7 +39,7 @@ int last_unique_id;
 struct sockaddr_in server_addresses[MAX_SERVERS];
 // timeouts are in microseconds
 // timeout i means that we wait that much in ith retry
-int timeouts[3] = {4 * 1000, 4 * 1000, 4 * 1000};
+int timeouts[3] = {10 * 1000, 10 * 1000, 10 * 1000};
 
 // -1 on failure
 // 0 on ok

@@ -4,7 +4,7 @@ Parameters you can tune
 
 
 # Miliseconds per clock tick
-CLOCK_RATE = 3
+CLOCK_RATE = 9
 
 # Time window to skip before a network outage to let it stabalize 
 # in miliseconds

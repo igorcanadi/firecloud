@@ -13,9 +13,9 @@ xcript = Transcript(clk)
 
 
 serv = Server(xcript, '192.168.56.101', '8808')
-serv1= Server(xcript, '127.0.0.1', '8080')
-serv2= Server(xcript, '127.0.0.1', '8888')
-serv3= Server(xcript, '127.0.0.1', '9988')
+serv1= Server(xcript, '192.168.56.102', '8808')
+serv2= Server(xcript, '192.168.56.103', '8808')
+serv3= Server(xcript, '192.168.56.104', '8808')
 network = Network([serv, serv1, serv2, serv3], xcript)
 
 sys = Client(clk, [serv])
@@ -23,9 +23,9 @@ sys = Client(clk, [serv])
 
 kv = sys.store
 
-for i in xrange(50):
+for i in xrange(5):
   kv['foo'] = 'bar'
-  kv['foo___'+str(i)]
+  kv['foo']
 
 
 
@@ -52,9 +52,6 @@ print 'Mean Time per Request (ms): ', cli.runtime * 1000 / cli.ctrace.reqcount
 print '(Effective) Mean Time per Request (ms): ', effective_time * 1000 / cli.ctrace.reqcount
 
 print 'Slack % = {0}'.format(cli.ctrace.slack *1.0/ (cli.runtime - dead_time) * 100)
-
-
-
 
 #print replay_gets_into_dict(cli.ctrace)
 

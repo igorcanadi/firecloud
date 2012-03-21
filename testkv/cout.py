@@ -99,12 +99,12 @@ def write_out(abstime, time, seq, itm, out):
   if type(itm) == Put:
     data = len(itm.val) + 1 # for the null
   elif type(itm) == Init:
-    print 'Doing init -------------'
+    #print 'Doing init -------------'
     data = len(itm.servers)
     time = abstime
-  print "Seq #%s scheduled for %s" % (seq, time)
+  #print "Seq #%s scheduled for %s" % (seq, time)
   head = pack(HEADER, time, seq, codes[type(itm)], data)
-  print 'Built header for: ', codes[type(itm)]
+  #print 'Built header for: ', codes[type(itm)]
   out(head)
   
   if type(itm) == Init:
