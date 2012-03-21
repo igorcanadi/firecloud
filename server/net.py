@@ -101,12 +101,10 @@ class Network(object):
     self.r.bind(me)
 
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    self.s.setsockopt(socket.SO_BROADCAST)
 
   def __flood(self, orig, data):
-    self.s.sendto(data, ("192.168.56.255", 8808))
-    #for a in filter(lambda x: x != orig, self.addrs):
-    #  self.s.sendto(data, a)
+    for a in filter(lambda x: x != orig, self.addrs):
+      self.s.sendto(data, a)
 
   def flood_ack(self, t, entry, seq):
     assert type(entry.key) is str
