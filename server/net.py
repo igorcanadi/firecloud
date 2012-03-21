@@ -187,8 +187,10 @@ class Network(object):
     e = db.Entry(key, (clock, self.me), value if type_ == TYPE_PUT else self.db[key].val)
     self.listeners[r] = tx.Listener(self.db, opaque, self.s, addr)
     if type_ == TYPE_GET:
+      log(str(e) + " " + str(r))
       t = tx.Tx(self, r)
       self.txs[r] = t
+      log("am I master? " + str(self.master))
       t.ack(e, self.master)
 
     ##print self.db[key]
