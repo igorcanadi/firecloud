@@ -30,6 +30,11 @@ def count_errors(ctrace):
       print tick, evt
   return count
 
+def skip_errors(ctrace):
+  for tick, sec, evt, txt in ctrace:
+    if txt is None:
+      continue
+    yield (tick, sec, evt, txt)
 
 def ticks_in_order(ctrace):
   """ Determines if all ticks came back in order
@@ -57,7 +62,7 @@ def eval_strict_ordering(ctrace):
   """
   kv = KVAnalysis()
   errors = 0
-  for tick, ti, evt, resl in ctrace:
+  for tick, ti, evt, resl in skip_errors(ctrace):
     if isinstance(evt, Put):
       oldv = kv[evt.ke]
       if oldv != resl:
