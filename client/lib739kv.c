@@ -99,6 +99,7 @@ void kv739_fail(char *server) {
         if (strcmp(server, servers[i]) == 0) {
             killed[i] = 1;
             ++nodes_down;
+            return;
         }
     }
 
@@ -114,6 +115,7 @@ void kv739_recover(char *server) {
         if (strcmp(server, servers[i]) == 0) {
             killed[i] = 0;
             --nodes_down;
+            return;
         }
     }
 
