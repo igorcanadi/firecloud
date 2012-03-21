@@ -22,15 +22,6 @@ def inc_clock():
   global clock
   clock += 3
 
-def check(t, net, now):
-  for key in net.txs.keys():
-    t = net.txs[key]
-    if t.state == tx.ZOMBIE:
-      t.revive(now)
-      return
-    if t.timed_out(now):
-      del txs[key]
-
 class EventLoop(object):
   def __init__(self, network):
     self.network = network
@@ -199,13 +190,22 @@ class Network(object):
   def rebroadcast(self, tx):
     self.flood_ack(TYPE_PACK, tx.entry, tx.seq)
 
+  def check(self, now):
+    for key in self.txs.keys():
+      t = self.txs[key]
+      if t.state == tx.ZOMBIE:
+        t.revive(now)
+        return
+      if t.timed_out(now):
+        del self.txs[key]
+
 
   def poll(self):
     while True:
       now = time.time()
       if now > self.last_zombie + random.uniform(.5, 2): 
         self.last_zombie = now
-        check(net, self.txs, now)
+        self.check(now)
 
       (data, addr) = self.r.recvfrom(10000)
 
