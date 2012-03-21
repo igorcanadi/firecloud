@@ -146,13 +146,13 @@ int choose_best_node() {
     p = rand() % pmax;
 
     for (i = 0; i < servers_size; ++i) {
-        if (killed[i]) {
+        if (killed[server_priority[i]]) {
             continue;
         }
 
         if (p >= pmax / 2) {
             // i is the chosen server
-            return i;
+            return server_priority[i];
         }
 
         pmax = pmax / 2;
