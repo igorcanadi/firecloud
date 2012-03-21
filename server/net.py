@@ -112,7 +112,7 @@ class Network(object):
     self.__flood(None, pickle.dumps((tuple(entry), self.master, t, self.me, seq, clock), 2))
 
   def has_seen(self, pkt):
-    return (pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig) in self.seen
+    return (pkt.clock, pkt.orig) in self.seen
 
   def commit(self, tx):
     ##print 'Commit: ', tx.entry
@@ -131,7 +131,7 @@ class Network(object):
     del self.txs[tx.seq]
 
   def see(self, pkt):
-    self.seen.add((pkt.entry.key, pkt.entry.ts, pkt.seq, pkt.orig))
+    self.seen.add((pkt.clock, pkt.orig))
 
   def flood_gack_for_key(self, key, seq):
     self.flood_ack(TYPE_GACK, self.db[key], seq)
@@ -141,10 +141,9 @@ class Network(object):
 
   def ack_get_xact(self, entry, seq, mast):
     try:
-      t = self.txs[seq]
+      self.txs[seq].ack(entry, mast)
     except KeyError:
-      return
-    t.ack(entry, mast)
+      pass
 
   def set_put_xact_value(self, entry, seq):
     try:
