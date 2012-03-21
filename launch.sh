@@ -1,7 +1,7 @@
 #!/bin/sh
 source config.sh
 
-if [ $# -lt 2 ]; then
+if [ $# -lt 1 ]; then
     # no input, start all of them
     who_to_start=(0 1 2 3)
 else 
