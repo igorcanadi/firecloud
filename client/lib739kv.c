@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <assert.h>
 #include <fcntl.h>
 #include <limits.h>
 #include <errno.h>
@@ -30,6 +31,7 @@
 
 
 char *servers[MAX_SERVERS];
+int server_priority[MAX_SERVERS];
 char killed[MAX_SERVERS];
 int nodes_down;
 int servers_size;
@@ -57,6 +59,8 @@ int kv739_init(char *s[]) {
             return -1;
         }
         strcpy(servers[servers_size], s[servers_size]);
+
+        server_priority[servers_size] = servers_size;
     }
 
     LOG("INIT'd severs.");
@@ -125,6 +129,75 @@ int choose_random_node(int not_this_one) {
 
     for (ret = rand() % servers_size; killed[ret] || ret == not_this_one; ret = rand() % servers_size);
     return ret;
+}
+
+int choose_best_node() {
+    int p, pmax, i;
+
+    if (nodes_down == servers_size) {
+        return -1;
+    }
+
+    // 0 - 3
+    // 1..2 - 2
+    // 3..6 - 1
+    // 7..14 - 0
+    pmax = (1 << (servers_size - nodes_down)) - 1;
+    p = rand() % pmax;
+
+    for (i = 0; i < servers_size; ++i) {
+        if (killed[i]) {
+            continue;
+        }
+
+        if (p >= pmax / 2) {
+            // i is the chosen server
+            return i;
+        }
+
+        pmax = pmax / 2;
+    }
+
+    assert(false);
+}
+
+// move it to the beginning of the list
+void server_responsive(int server) {
+    int i, t;
+
+    if (killed[server]) {
+        return;
+    }
+
+    for (i = 0; i < servers_size && server_priority[i] != server; ++i)
+        ;
+
+    assert(i < servers_size);
+
+    for ( ; i >= 1; --i) {
+        // swap
+        t = server_priority[i-1];
+        server_priority[i-1] = server_priority[i];
+        server_priority[i] = t;
+    }
+}
+
+// move it to the end of the list
+void server_not_responsive(int server) {
+    int i, t;
+
+    for (i = 0; i < servers_size && server_priority[i] != server; ++i)
+        ;
+
+    assert(i < servers_size);
+
+    for ( ; i+1 < servers_size; ++i) {
+        // swap
+        t = server_priority[i+1];
+        server_priority[i+1] = server_priority[i];
+        server_priority[i] = t;
+    }
+
 }
 
 // -1 on error
@@ -228,7 +301,7 @@ int send_query_string(char *query, char *value, int request_id) {
     }
 
     for (iteration = 0; iteration < 3; ++iteration) {
-        node_to_send_to = choose_random_node(node_to_send_to);
+        node_to_send_to = choose_best_node();
         if (node_to_send_to == -1) {
             LOG("Failed to find a node to send to");
             retval = -1;
@@ -257,10 +330,12 @@ int send_query_string(char *query, char *value, int request_id) {
             } else if (retval == 0) {
                 // timeout, try another server
                 LOG("Query timed out. I might try another server.");
+                server_not_responsive(node_to_send_to);
                 retval = -1;
                 break;
             } else {
                 LOG("Got back: %s", return_buffer);
+                server_responsive(node_to_send_to);
                 if (parse_ok_reply(return_buffer, value, request_id) == 0) {
                     LOG("Response OK, happy times");
                     // i got ok response
