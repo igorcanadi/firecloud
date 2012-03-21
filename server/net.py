@@ -205,7 +205,7 @@ class Network(object):
       now = time.time()
       if now > self.last_zombie + random.uniform(.5, 2): 
         self.last_zombie = now
-        #check(net, self.txs, now)
+        check(net, self.txs, now)
 
       (data, addr) = self.r.recvfrom(10000)
 
