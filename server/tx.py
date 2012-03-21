@@ -126,6 +126,7 @@ class Tx(object):
     self.net.commit(self)
 
   def ack(self, entry, is_master):
+    log("state: " + str(self.state) + " ack " + str(entry))
     assert type(entry.key) is str
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
@@ -134,6 +135,8 @@ class Tx(object):
       self.state, action = transition(self.state, master)
     else:
       self.state, action = transition(self.state, normal)
+    
+    log(str(self.state) + " action " + str(action)) 
 
     if action == COMMIT:
       self.commit()
