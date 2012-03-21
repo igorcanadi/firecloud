@@ -23,10 +23,15 @@ sys2 = Client(clk, [serv1])
 kv = sys.store
 kv2 = sys2.store
 
+
+
 for i in xrange(20):
   kv['foo'] = 'bar' + str(i)
   kv2['foo']
   kv2['foo'] = 'bar_' + str(i)
+  sys.fail(serv)
+  kv['foo']
+  sys.recover(serv)
   kv['foo']
   
 

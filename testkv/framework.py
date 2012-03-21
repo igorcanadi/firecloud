@@ -69,12 +69,10 @@ class Network(object):
       t = a
       a = b
       b = a
-    self.xcript.clock.tick(round(PRE_NETWORK_WINDOW / CLOCK_RATE))
     if val:
       self.xcript.record(NetUpEvent(a, b))
     else:
       self.xcript.record(NetKillEvent(a, b))
-    self.xcript.clock.tick(round(POST_NETWORK_WINDOW / CLOCK_RATE))
     self.edges[(a, b)] = False
 
   def __getitem__(self, (a, b)):

@@ -66,15 +66,16 @@ void init(header head) {
 void fail(header head) {
   char name[255];
   fread(&name, 1, 255, stdin);
+  printf("failing: %s\n", &name);
   kv739_fail(&name);
-  //printf("fail %s", &name);
+  printf("fail %s\n", &name);
 }
 
 void recover(header head) {
   char name[255];
   fread(&name, 1, 255, stdin);
   kv739_recover(&name);
-  //printf("recover %s", &name);
+  printf("recover %s\n", &name);
 }
 
 void get(header head) { 

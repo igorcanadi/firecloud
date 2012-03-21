@@ -131,10 +131,11 @@ def run_transcript(tups, abstime):
   buf = Buffer_()
   for ti, tick, evt in tups:
     write_out(abstime, int(ti), tick, evt, buf.write)
-  p = Popen(['./runner'], stdin=PIPE, stderr=STDOUT, stdout=PIPE)
+  p = Popen(['./runner'], stdin=PIPE, stderr=PIPE, stdout=PIPE)
   with open('raw_transcript', 'w') as f:
     f.write(buf.buf)
   out, err = p.communicate(input=buf.buf)
+  print out, err
   return reconstruct(out, tups)
 
 def fake_run_transcript(tups):

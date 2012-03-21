@@ -11,7 +11,7 @@ import subprocess
 from cnc import remote_exec
 
 
-def partition(host1, port1, host2, port2):
+def partition(host1, host2):
   """ Creates a partition between the server at host1:port1 and 
   the server at host2:port2
   The partition should block all traffic between these two servers
@@ -34,7 +34,7 @@ def partition(host1, port1, host2, port2):
 
 
 
-def partition_heal(host1, port1, host2, port2):
+def partition_heal(host1, host2):
   """ Removes any partition between the two servers. 
   After calling this, the server at host1:port1 and the 
   server at host2:port2 should be able to communicate fully
@@ -55,7 +55,7 @@ def partition_heal(host1, port1, host2, port2):
 
 
 # kill `lsof | grep 10000 | awk '{print $2}'`
-def take_server_down(host, port):
+def take_server_down(host):
   """ Takes the server down / kills the process / kills the VM.
   Implement this only if Swift says we need it
   @type host: str

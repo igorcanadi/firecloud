@@ -13,7 +13,6 @@ def sleep_until(atime):
   delta = atime - time() 
   if delta < 0:
     raise Exception('Behind Schedule by {0}s'.format(delta))
-  print 'Sleeping for : ', delta, 'seconds'
   sleep(delta)
 
 
@@ -28,7 +27,8 @@ class ActThread(Thread):
   def run(self):
     start = self.abstime * 1.0 /1000
     for offset, act in self.tups:
-      sleep_until(offset + start )
+      # offset is in msec
+      sleep_until(offset * 1.0/1000 + start )
       self.take_action(act)
   
   def take_action(self, act):

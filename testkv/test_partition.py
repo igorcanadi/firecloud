@@ -17,7 +17,6 @@ serv = Server(xcript, '192.168.56.103', '8808')
 serv1 = Server(xcript, '192.168.56.104', '8808')
 network = Network([serv, serv1], xcript)
 
-network[(serv, serv1)] = False
 
 sys = Client(clk, [serv])
 sys2 = Client(clk, [serv1])
@@ -29,6 +28,7 @@ kv2 = sys2.store
 for i in xrange(20):
   kv['foo'] = 'bar' + str(i)
   kv2['foo']
+  network[(serv, serv1)] = False
   kv2['foo'] = 'bar_' + str(i)
   kv['foo']
   
@@ -56,6 +56,7 @@ cli2.start()
 
 cli.join()
 cli2.join()
+ctl.join()
 
 print 'Total Errors:', count_errors(cli.ctrace)
 
