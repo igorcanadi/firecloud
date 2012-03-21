@@ -35,9 +35,9 @@ int nodes_down;
 int servers_size;
 int last_unique_id;
 struct sockaddr_in server_addresses[MAX_SERVERS];
-// first element is micro timeout
-// second element is macro - micro timeout
-int timeouts[2] = {1 * 1000 * 1000, 3 * 1000 * 1000};
+// timeouts are in microseconds
+// timeout i means that we wait that much in ith retry
+int timeouts[3] = {4 * 1000, 4 * 1000, 4 * 1000};
 
 // -1 on failure
 // 0 on ok
@@ -227,7 +227,7 @@ int send_query_string(char *query, char *value, int request_id) {
         goto closesocket;
     }
 
-    for (iteration = 0; iteration < 2; ++iteration) {
+    for (iteration = 0; iteration < 3; ++iteration) {
         node_to_send_to = choose_random_node(node_to_send_to);
         if (node_to_send_to == -1) {
             LOG("Failed to find a node to send to");
