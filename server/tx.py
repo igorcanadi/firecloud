@@ -111,7 +111,7 @@ class Tx(object):
     self.start = time.time()
     self.net = net
 
-  def timed_out(self, tim):
+  def timed_out(self, now):
     return now > self.start + TIMEOUT
 
   def revive(self, now):
