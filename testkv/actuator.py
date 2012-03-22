@@ -11,7 +11,14 @@ import subprocess
 
 from os import system
 from os import chdir
+from conf import server_list
 
+def remote_exec(gate, cmd):
+  #retval = subprocess.call(command, shell=True)
+  #if retval != 0:
+  #    return retval
+  print 'ssh -i ../keys/id_rsa -p 22 user739@{0[0]} \"{1}\"'.format(gate, cmd)
+  system('ssh -i ../keys/id_rsa -p 22 user739@{0[0]} \"{1}\" &'.format(gate, cmd))
 
 def partition(host1, host2):
   """ Creates a partition between the server at host1:port1 and 
@@ -36,7 +43,6 @@ def partition(host1, host2):
 
 
 
-
 def partition_heal(host1, host2):
   """ Removes any partition between the two servers. 
   After calling this, the server at host1:port1 and the 
@@ -51,11 +57,15 @@ def partition_heal(host1, host2):
   @type port2: int
   @returns 0 on OK, non-0 on PANIC
   """
-  assert system('../partition.sh -D {0} {1}'.format(host1, host2)) == 0
+  chdir('..')
+  c = './partition.sh -D {0} {1}'.format(host1, host2)
+  print c
+  assert system(c) == 0
+  chdir('testkv')
 
 
 # kill `lsof | grep 10000 | awk '{print $2}'`
-def take_server_down(host):
+def take_server_down(host, port):
   """ Takes the server down / kills the process / kills the VM.
   Implement this only if Swift says we need it
   @type host: str
@@ -64,12 +74,13 @@ def take_server_down(host):
   @type port: int
   @returns 0 on OK, non-0 on PANIC
   """
-  command = "kill `lsof | grep %d | awk '{print $2}'`" % (host, port)
+  #command = "kill `lsof | grep %s | awk '{print $2}'`" % (port)
+  command = "killall python"
   remote_exec((host, port), command)
 
 
 # requirement: main.py in the home directory on the server
-def bring_server_up(host, port, hosts):
+def bring_server_up(host, port):
   """ Undo-what ever take_server_down does, so that the server works again
   Implement this only if Swift says we need it
   @type host: str
@@ -79,9 +90,9 @@ def bring_server_up(host, port, hosts):
   @param hosts list of strs in format 'host:port'
   @returns 0 on OK, non-0 on PANIC
   """
-  assert (host, port) in hosts
-  
-  index = hosts.index((host, port))
-  hosts = map(lambda t: ':'.join(t), hosts)
-  command = "python ~/main.py %d %s" % (index, " ".join(hosts))
+  hosts = server_list
+  assert [host, port] in server_list
+  index = hosts.index([host, port])
+  hl = map( lambda t: ':'.join(t), server_list)
+  command = "python ~/server/main.py %s %s" % (index, " ".join(hl))
   remote_exec((host, port), command)

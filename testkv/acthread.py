@@ -5,7 +5,9 @@ created by transcribe
 
 from threading import Thread
 from transcribe import HostKill, HostUp, NetKillEvent, NetUpEvent
-from actuator import partition, partition_heal
+from actuator import partition, partition_heal, \
+                     take_server_down, bring_server_up
+
 
 from time import time, sleep
 
@@ -33,11 +35,17 @@ class ActThread(Thread):
       self.take_action(act)
   
   def take_action(self, act):
-    print act
     if isinstance(act, NetKillEvent):
       partition(act.host0.host, act.host1.host)
-    else:
+    elif isinstance(act, NetUpEvent):
       partition_heal(act.host0.host, act.host1.host)
+    elif isinstance(act, HostKill):
+      take_server_down(act.host, act.port)
+    elif isinstance(act, HostUp):
+      bring_server_up(act.host, act.port)
+    else: 
+      raise Exception("Bad Igor.")
+
 
 
 

@@ -2,6 +2,15 @@
 Parameters you can tune
 """
 
+import json
+
+  
+def load_servers(cfgfile):
+  with open(cfgfile) as f:
+    return json.loads('\n'.join(f.readlines()))
+  
+server_list = load_servers('servers.cfg')
+    
 
 # Miliseconds per clock tick
 CLOCK_RATE = 3
