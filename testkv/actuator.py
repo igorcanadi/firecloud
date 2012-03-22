@@ -17,8 +17,8 @@ def remote_exec(gate, cmd):
   #retval = subprocess.call(command, shell=True)
   #if retval != 0:
   #    return retval
-  print 'ssh -i ../keys/id_rsa -p {0[1]} user739@{0[0]} \"{1}\"'.format(gate, cmd)
-  system('ssh -i ../keys/id_rsa -p {0[1]} user739@{0[0]} \"{1}\" &'.format(gate, cmd))
+  print 'ssh -i ../keys/id_rsa -p 22 user739@{0[0]} \"{1}\"'.format(gate, cmd)
+  system('ssh -i ../keys/id_rsa -p 22 user739@{0[0]} \"{1}\" &'.format(gate, cmd))
 
 def partition(host1, host2):
   """ Creates a partition between the server at host1:port1 and 
@@ -62,7 +62,7 @@ def partition_heal(host1, host2):
 
 
 # kill `lsof | grep 10000 | awk '{print $2}'`
-def take_server_down(host):
+def take_server_down(host, port):
   """ Takes the server down / kills the process / kills the VM.
   Implement this only if Swift says we need it
   @type host: str
@@ -71,7 +71,8 @@ def take_server_down(host):
   @type port: int
   @returns 0 on OK, non-0 on PANIC
   """
-  command = "kill `lsof | grep %d | awk '{print $2}'`" % (host, port)
+  #command = "kill `lsof | grep %s | awk '{print $2}'`" % (port)
+  command = "killall python"
   remote_exec((host, port), command)
 
 
@@ -86,7 +87,9 @@ def bring_server_up(host, port):
   @param hosts list of strs in format 'host:port'
   @returns 0 on OK, non-0 on PANIC
   """
+  hosts = server_list
   assert (host, port) in server_list
   index = hosts.index((host, port))
-  command = "python ~/main.py %d %s" % (index, " ".join(hosts))
+  hl = map( lambda t: ':'.join(t), server_list)
+  command = "python ~/server/main.py %s %s" % (index, " ".join(hl))
   remote_exec((host, port), command)

@@ -9,6 +9,7 @@ from acthread import ActThread
 
 from time import time
 
+CLOCK_RATE = 100
 clk = Clock()
 xcript = Transcript(clk)
 
