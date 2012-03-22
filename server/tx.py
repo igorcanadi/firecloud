@@ -34,7 +34,7 @@ def transition(state, arrow):
   try:
     return STATETBL[state][arrow]
   except KeyError:
-    log('INVALID State Transition: in state {0} with tranition of {1}'.format(state, arrow))
+    barf('INVALID State Transition: in state {0} with tranition of {1}'.format(state, arrow))
     raise Exception('Invalid State Transition -- see log.')
   return
 
