@@ -275,6 +275,6 @@ class Network(object):
 
         ##print pkt
         self.see(pkt)
-        yield pkt
         assert type(pkt.entry.key) is str
         self.__flood(addr, data)
+        yield pkt
