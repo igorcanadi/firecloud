@@ -245,7 +245,7 @@ class Network(object):
       (data, addr) = self.r.recvfrom(4096)
 
       if data[0:4] == 'ping':
-        self.s.sendto('pong', addr)
+        self.r.sendto('pong', addr)
         continue
 
 
