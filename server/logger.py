@@ -8,6 +8,7 @@ def barf(txt):
   if not '\n' in txt:
     txt += '\n'
   LOG_FILE.write('BARF: %s : %s' % (time(), txt)) 
+  LOG_FILE.flush()
 
 def log(txt):
   if VERBOSE:

@@ -1,5 +1,6 @@
 import time
 from db import Entry
+import net
 
 from logger import log, barf
 

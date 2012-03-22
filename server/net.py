@@ -7,7 +7,7 @@ import db
 import time
 import random
 
-from logger import log
+from logger import log, barf
 
 Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq', 'clock'])
 
@@ -194,8 +194,8 @@ class Network(object):
     inc_clock()
     pkt = pickle.dumps((tuple(e), self.master, type_, self.me, r, clock), 2)
 
-    global server_sent_pkts
-    server_sent_pkts += 1
+    global server_pkts_sent
+    server_pkts_sent += 1
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
@@ -209,7 +209,7 @@ class Network(object):
       if t.state == tx.ZOMBIE:
         znum += 1
         t.revive(now)
-        return
+        continue
       if t.timed_out(now):
         tonum += 1
         del self.txs[key]
@@ -226,7 +226,7 @@ class Network(object):
         (z,t) = self.check(now)
         barf("time: " + str(time.time()))
         barf("zombie %d timeout %d" % (z,t))
-        barf("srv out %d : srv in %d ;; cl out %d : cl in %d" % (server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
+        barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
         
 
       (data, addr) = self.r.recvfrom(4096)
