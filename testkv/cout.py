@@ -164,42 +164,44 @@ def reconstruct(text, tups):
   reqcount = 0
   first_time_stamp = None
   last_time_stamp = None
-  for line in text.split('\n'):
-    if len(line) == 0 or line[0] != '+':
-      continue
-    # ignore leading '+ '
-    line = line[2:]
-    line.lstrip(' ')
-    i = line.index(' ')
-    tick, txt = line[0:i], line[i+1:]
-    tick = int(tick)
-    if tick == -1:
-      # THere was an error
-      raise Exception(txt)
-    elif tick == -2:
-      usec_slack += int(txt)
-    else:
-      reqcount += 1
-      # Handle a GET or PUT
-      i = txt.index(' ')
-      msec, txt= txt[0:i], txt[i+1:]
-      msec = int(msec) / 1000.0
-      if first_time_stamp is None:
-        first_time_stamp = msec
-      last_time_stamp = msec
-      i = txt.index(' ')
-      code, txt= txt[0:i], txt[i+1:]
-      code = int(code)
-      if code == 0:
-        # worked correctly
-        pass
-      elif code < 0:
-        # error occured
-        txt = None
-      elif code > 0:
-        # no previous key
-        txt = '[]'
-      construct.append((tick, msec, tickmap[tick], txt))
+  with open('hist.dat', 'w') as f:
+    for line in text.split('\n'):
+      if len(line) == 0 or line[0] != '+':
+        continue
+      # ignore leading '+ '
+      line = line[2:]
+      line.lstrip(' ')
+      i = line.index(' ')
+      tick, txt = line[0:i], line[i+1:]
+      tick = int(tick)
+      if tick == -1:
+        # THere was an error
+        raise Exception(txt)
+      elif tick == -2:
+        f.write('%d\n' % abs(int(txt)) )
+        usec_slack += int(txt)
+      else:
+        reqcount += 1
+        # Handle a GET or PUT
+        i = txt.index(' ')
+        msec, txt= txt[0:i], txt[i+1:]
+        msec = int(msec) / 1000.0
+        if first_time_stamp is None:
+          first_time_stamp = msec
+        last_time_stamp = msec
+        i = txt.index(' ')
+        code, txt= txt[0:i], txt[i+1:]
+        code = int(code)
+        if code == 0:
+          # worked correctly
+          pass
+        elif code < 0:
+          # error occured
+          txt = None
+        elif code > 0:
+          # no previous key
+          txt = '[]'
+        construct.append((tick, msec, tickmap[tick], txt))
   return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0), reqcount, last_time_stamp-first_time_stamp)
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )
