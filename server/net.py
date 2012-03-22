@@ -7,6 +7,8 @@ import db
 import time
 import random
 
+from netlayer import BufSocket
+
 from logger import log, barf
 
 Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq', 'clock'])
@@ -96,9 +98,11 @@ class Network(object):
 
     addrs.remove(me)
     self.addrs = addrs
-    self.r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    #self.r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ###print 'I AM:', me
-    self.r.bind(me)
+    #self.r.bind(me)
+    self.r = BufSocket(me)
+    self.r.start()
 
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
@@ -106,7 +110,7 @@ class Network(object):
     global server_pkts_sent
     for a in filter(lambda x: x != orig, self.addrs):
       server_pkts_sent += 1
-      self.s.sendto(data, a)
+      self.r.sendto(data, a)
 
   def flood_ack(self, t, entry, seq):
     assert type(entry.key) is str
