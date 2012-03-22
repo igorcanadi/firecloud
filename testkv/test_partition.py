@@ -8,6 +8,9 @@ from time import time
 
 
 from harness import create_harness
+from actuator import hard_reset
+
+hard_reset()
 
 
 harn = create_harness()
@@ -21,7 +24,6 @@ kv = cli.store
 kv2 = cli2.store
 
 kv['foo'] = 'var'
-
 kv2['foo'] = 'var2'
 
 harn.network[serv] = False
@@ -34,7 +36,7 @@ kv['foo'] = 'var'
 kv2['foo'] = 'var2'
 
 
-harn.execute(10)
+harn.execute(CLOCK_RATE)
 
 
 harn.print_stats()
