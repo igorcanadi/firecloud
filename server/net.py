@@ -231,7 +231,7 @@ class Network(object):
 
       try:
         entry = self.rebroadcasts.pop()
-        self.flood_ack(TYPE_PACK, tx.entry, random.random())
+        self.flood_ack(TYPE_PACK, entry, random.random())
       except IndexError:
         pass
 
