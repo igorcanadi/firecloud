@@ -27,7 +27,7 @@ sys = Client(clk, [serv])
 
 kv = sys.store
 
-for i in xrange(50):
+for i in xrange(500):
   kv['foo'] = 'bar'
   kv['foo']
 
@@ -40,8 +40,7 @@ for clk in xrange(10):
   cli.start()
   cli.join()
   if count_errors(cli.ctrace) != 0:
-    print 'Too many errors: '+ str(count_errors(cli.ctrace))
-    continue
+    print 'errors: '+ str(count_errors(cli.ctrace))
   rate = (cli.ctrace.slack * 1000.0 / cli.ctrace.reqcount)
   print '@{0}ms clock, msec / req : {1}'.format(clk, rate)
 
