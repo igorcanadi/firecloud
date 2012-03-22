@@ -20,7 +20,7 @@ def remote_exec(gate, cmd):
   #retval = subprocess.call(command, shell=True)
   #if retval != 0:
   #    return retval
-  print 'ssh -i ../keys/id_rsa -p 22 user739@{0[0]} \"{1}\"'.format(gate, cmd)
+  print 'ssh -i ../keys/id_rsa -p 22 user739@{0[0]} \"{1}\" &'.format(gate, cmd)
   system('ssh -i ../keys/id_rsa -p 22 user739@{0[0]} \"{1}\" &'.format(gate, cmd))
 
 def partition(host1, host2):
@@ -120,7 +120,9 @@ def hard_reset():
   print 'Hard Reset on cluster'
   for host, port in server_list:
     take_server_down(host)
+  for host, port in server_list:
     flush_iptables(host)
+  for host, port in server_list:
     bring_server_up(host, port)
   sleep(RESET_DELAY)
     

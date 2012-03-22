@@ -187,7 +187,7 @@ class Network(object):
     ##print key
     assert type(key) is str
     e = db.Entry(key, (clock, self.me), value if type_ == TYPE_PUT else self.db[key].val)
-    self.listeners[r] = tx.Listener(self.db, opaque, self.s, addr)
+    self.listeners[r] = tx.Listener(self.db, opaque, self.r, addr)
     if type_ == TYPE_GET:
       t = tx.Tx(self, r)
       self.txs[r] = t

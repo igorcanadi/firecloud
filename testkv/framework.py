@@ -12,10 +12,14 @@ class Server(object):
     self.xcript = xcript
 
   def fail(self):
+    self.xcript.clock.tick(int(PRE_NETWORK_WINDOW / CLOCK_RATE))
     self.xcript.record(HostKill(self.host, self.port))
+    self.xcript.clock.tick(int(POST_NETWORK_WINDOW / CLOCK_RATE))
 
   def recover(self):
+    self.xcript.clock.tick(int(PRE_NETWORK_WINDOW / CLOCK_RATE))
     self.xcript.record(HostUp(self.host, self.port))
+    self.xcript.clock.tick(int(POST_NETWORK_WINDOW / CLOCK_RATE))
   
   def __str__(self):
     return '{0.host}:{0.port}'.format(self)
@@ -84,11 +88,15 @@ class Network(object):
     if b < a:
       t = a
       a = b
-      b = a
+      b = t
     if val:
+      self.xcript.clock.tick(int(PRE_NETWORK_WINDOW / CLOCK_RATE))
       self.xcript.record(NetUpEvent(a, b))
+      self.xcript.clock.tick(int(POST_NETWORK_WINDOW / CLOCK_RATE))
     else:
+      self.xcript.clock.tick(int(PRE_NETWORK_WINDOW / CLOCK_RATE))
       self.xcript.record(NetKillEvent(a, b))
+      self.xcript.clock.tick(int(POST_NETWORK_WINDOW / CLOCK_RATE))
     self.edges[(a, b)] = False
 
   def __getitem__(self, (a, b)):
