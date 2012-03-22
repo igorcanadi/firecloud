@@ -1,7 +1,7 @@
 import time
 from db import Entry
 
-from logger import log
+from logger import log, barf
 
 UNCOMMITED = 0
 COMMIT = 88

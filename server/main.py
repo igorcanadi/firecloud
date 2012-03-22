@@ -4,7 +4,7 @@ import sys
 
 import traceback
 
-from logger import log
+from logger import log, barf
 
 
 def main(idx, master, addrs):
