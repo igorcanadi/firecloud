@@ -10,6 +10,7 @@ REQUIREMENT: id_rsa in current directory
 import subprocess
 
 from os import system
+from os import chdir
 
 
 def partition(host1, host2):
@@ -27,9 +28,11 @@ def partition(host1, host2):
   @type port2: int
   @returns 0 on OK, non-0 on PANIC
   """
-  c = '../partition.sh -A {0} {1}'.format(host1, host2)
+  c = './partition.sh -A {0} {1}'.format(host1, host2)
   print c
+  chdir('..')
   assert system(c) == 0
+  chdir('testkv')
 
 
 

@@ -33,10 +33,11 @@ class ActThread(Thread):
       self.take_action(act)
   
   def take_action(self, act):
+    print act
     if isinstance(act, NetKillEvent):
-      partition(act.host0, act.host1)
+      partition(act.host0.host, act.host1.host)
     else:
-      partition_heal(act.host0, act.host1)
+      partition_heal(act.host0.host, act.host1.host)
 
 
 
