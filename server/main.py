@@ -40,5 +40,5 @@ try:
   log('starting v2.0!')
   main(idx, master, addrs)
 except Exception, e:
-  log('ERROR')
-  log(traceback.format_exc())
+  barf('ERROR')
+  barf(traceback.format_exc())
