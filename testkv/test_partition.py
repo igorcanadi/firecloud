@@ -27,13 +27,14 @@ kv['foo'] = 'var'
 kv2['foo'] = 'var2'
 
 harn.network[serv] = False
-kv['foo'] = 'var'
-kv2['foo'] = 'var2'
-kv['foo'] = 'var'
-kv2['foo'] = 'var2'
-harn.network[serv] = True
-kv['foo'] = 'var'
-kv2['foo'] = 'var2'
+
+kv['foo'] = 'var__2'
+kv2['foo'] = 'var_2'
+kv['foo'] = 'var__3'
+kv2['foo'] = 'var_3'
+#harn.network[serv] = True
+kv['foo'] = 'var__4'
+kv2['foo'] = 'var_4'
 
 
 harn.execute(CLOCK_RATE)

@@ -4,7 +4,7 @@ from collections import namedtuple
 from subprocess import Popen, PIPE, STDOUT
 import time as time_
 from conf import SYNC_WINDOW 
-from threading import Thread
+from threading import Thread, Event
 
 ERROR_CODE = 0xDEADBEEF
 
@@ -83,11 +83,12 @@ class ClientThread(Thread):
     self.log = None
     self.slack = None
     self.abstime = None
+    self.start_event = Event()
 
   def run(self):
     start = time_.time()
     assert self.abstime is not None
-    self.ctrace = run_transcript(self.tups, self.abstime)
+    self.ctrace = run_transcript(self.tups, self.abstime, self.start_event)
     self.slow_runtime = time_.time() - start
     self.runtime = self.ctrace.runtime
 
@@ -127,13 +128,13 @@ def write_out(abstime, time, seq, itm, out):
     out('\0')
 
 
-def run_transcript(tups, abstime):
+def run_transcript(tups, abstime, sevt):
   buf = Buffer_()
   for ti, tick, evt in tups:
     write_out(abstime, int(ti), tick, evt, buf.write)
   p = Popen(['./runner'], stdin=PIPE, stderr=PIPE, stdout=PIPE)
-  with open('raw_transcript', 'w') as f:
-    f.write(buf.buf)
+  sevt.set()
+  print 'Client Forked.'
   out, err = p.communicate(input=buf.buf)
   #print out, err
   return reconstruct(out, tups)

@@ -1,11 +1,12 @@
 
 
-from conf import server_list
+from conf import server_list, SYNC_WINDOW
 from framework import Client, Server, Clock, Transcript, Network, CLOCK_RATE
 from acthread import ActThread
 from transcribe import build_plan
 from cout import ClientThread
-from time import time
+from time import time, sleep 
+
 
 from analysis import stat_trace
 
@@ -58,21 +59,26 @@ class Harness(object):
   def execute(self, clkrate):
     ignore, plan, ignore = build_plan(self.network, clkrate)
     thrds = []
+    #stuff = []
     for cli in self.clients:
       cltrd, ignore, ignore = build_plan(cli, clkrate)
+      #stuff[0:0] = cltrd.tups
       thrds.append(cltrd)
-
+    #stuff[0:0] = plan
+    #for t in sorted(stuff, key=lambda t: t[0]):
+    #  print t
     act = ActThread(plan)
 
     # sync offset for start, in msec
-    start = int(time() * 1000) + 1000
+    start = int(time() * 1000) + SYNC_WINDOW
     act.abstime = start
     for t in thrds:
       t.abstime = start
     
-    act.start()
     for t in thrds:
       t.start()
+      t.start_event.wait()
+    act.start()
 
     act.join()
     for cli, t in zip(self.clients, thrds):
