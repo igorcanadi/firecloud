@@ -235,9 +235,9 @@ class Network(object):
     global client_pkts_recved
     global server_pkts_recved
     while True:
-      now = time.time()
-      if now > self.next_zombie:
-        self.bookkeep(now)
+      #now = time.time()
+      #if now > self.next_zombie:
+      #  self.bookkeep(now)
         
       try:
         entry = self.rebroadcasts.pop()
