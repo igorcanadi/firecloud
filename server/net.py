@@ -89,7 +89,7 @@ class Network(object):
     self.rebroadcasts = []
     self.get = re.compile("GET (\[.*?\]) (\[.*?\])")
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
-    self.last_zombie = time.time()
+    self.next_zombie = time.time() + 1
 
     self.seen1 = set()
     self.seen2 = set()
@@ -221,11 +221,10 @@ class Network(object):
   def bookkeep(self, now):
     len1 = len(self.seen1)
     len2 = len(self.seen2)
-    self.seen2 = self.seen1
-    self.seen1 = set()
+    #self.seen2 = self.seen1
+    #self.seen1 = set()
     
-    barf("over a %s sec period" % (str(now - self.last_zombie)))
-    self.last_zombie = now
+    self.next_zombie = now + random.uniform(.8, 2);
     (z,t) = self.check(now)
     barf("zombie %d timeout %d" % (z,t))
     barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
@@ -237,7 +236,7 @@ class Network(object):
     global server_pkts_recved
     while True:
       now = time.time()
-      if now > (self.last_zombie + random.uniform(.8, 2)): 
+      if now > self.next_zombie:
         self.bookkeep(now)
         
       try:
