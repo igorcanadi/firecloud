@@ -135,7 +135,7 @@ def run_transcript(tups, abstime):
   with open('raw_transcript', 'w') as f:
     f.write(buf.buf)
   out, err = p.communicate(input=buf.buf)
-  print out, err
+  #print out, err
   return reconstruct(out, tups)
 
 def fake_run_transcript(tups):

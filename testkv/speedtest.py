@@ -12,10 +12,14 @@ clk = Clock()
 xcript = Transcript(clk)
 
 
-serv = Server(xcript, '192.168.56.101', '8808')
-serv1= Server(xcript, '192.168.56.102', '8808')
-serv2= Server(xcript, '192.168.56.103', '8808')
-serv3= Server(xcript, '192.168.56.104', '8808')
+#serv = Server(xcript, '192.168.56.101', '8808')
+#serv1= Server(xcript, '192.168.56.102', '8808')
+#serv2= Server(xcript, '192.168.56.103', '8808')
+#serv3= Server(xcript, '192.168.56.104', '8808')
+serv = Server(xcript, '128.105.112.7', '8808')
+serv1= Server(xcript, '128.105.112.8', '8808')
+serv2= Server(xcript, '128.105.112.9', '8808')
+serv3= Server(xcript, '128.105.112.10', '8808')
 network = Network([serv, serv1, serv2, serv3], xcript)
 
 sys = Client(clk, [serv])
@@ -23,7 +27,7 @@ sys = Client(clk, [serv])
 
 kv = sys.store
 
-for i in xrange(100):
+for i in xrange(50):
   kv['foo'] = 'bar'
   kv['foo']
 
@@ -31,12 +35,13 @@ for i in xrange(100):
 
 
 for clk in xrange(10):
-  cli, plan, dead_time = build_plan(sys, CLOCK_RATE)
+  cli, plan, dead_time = build_plan(sys, clk)
   cli.abstime = int(time() * 1000) + 100
   cli.start()
   cli.join()
   if count_errors(cli.ctrace) != 0:
-    raise Exception('Too many errors: '+ str(count_errors(cli.trace)) )
+    print 'Too many errors: '+ str(count_errors(cli.ctrace))
+    continue
   rate = (cli.ctrace.slack * 1000.0 / cli.ctrace.reqcount)
   print '@{0}ms clock, msec / req : {1}'.format(clk, rate)
 

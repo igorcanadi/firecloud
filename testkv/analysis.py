@@ -27,7 +27,6 @@ def count_errors(ctrace):
   for tick, sec, evt, txt in ctrace:
     if txt is None:
       count += 1
-      print tick, evt
   return count
 
 def skip_errors(ctrace):
