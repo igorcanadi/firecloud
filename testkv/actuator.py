@@ -10,6 +10,8 @@ REQUIREMENT: id_rsa in current directory
 import subprocess
 from cnc import remote_exec
 
+from os import system
+
 
 def partition(host1, host2):
   """ Creates a partition between the server at host1:port1 and 
@@ -26,10 +28,8 @@ def partition(host1, host2):
   @type port2: int
   @returns 0 on OK, non-0 on PANIC
   """
-  command = "sudo iptables -A INPUT -s %s -j REJECT" % (host2)
-  command1 = "sudo iptables -A INPUT -s %s -j REJECT" % (host1)
-  remote_exec((host1, port1), command)
-  remote_exec((host2, port2), command1)
+  system('../partition.sh -A {0} {1}'.format(host1, host2))
+
 
 
 
@@ -48,10 +48,7 @@ def partition_heal(host1, host2):
   @type port2: int
   @returns 0 on OK, non-0 on PANIC
   """
-  command = "sudo iptables -D INPUT -s %s -j REJECT" % (host2)
-  command1 = "sudo iptables -D INPUT -s %s -j REJECT" % (host1)
-  remote_exec((host1, port1), command)
-  remote_exec((host2, port2), command1)
+  system('../partition.sh -D {0} {1}'.format(host1, host2))
 
 
 # kill `lsof | grep 10000 | awk '{print $2}'`
