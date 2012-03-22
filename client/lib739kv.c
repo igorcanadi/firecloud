@@ -29,16 +29,18 @@
     #define LOG(x, args...) do { } while(0)
 #endif
 
+char global_return_buffer[MAX_RETURN_LEN];
 char *servers[MAX_SERVERS];
 int server_priority[MAX_SERVERS];
 char killed[MAX_SERVERS];
 int nodes_down;
 int servers_size;
 int last_unique_id;
+int global_sck;
 struct sockaddr_in server_addresses[MAX_SERVERS];
 // timeouts are in microseconds
 // timeout i means that we wait that much in ith retry
-int timeouts[3] = {10 * 1000, 10 * 1000, 100 * 1000};
+int timeouts[3] = {3 * 1000, 4 * 1000, 15 * 1000};
 
 // -1 on failure
 // 0 on ok
@@ -84,6 +86,14 @@ int kv739_init(char *s[]) {
         server_addresses[i].sin_addr.s_addr = inet_addr(ip_buffer);
         server_addresses[i].sin_port = htons(port);
         LOG("IP %s, port %d", ip_buffer, port);
+    }
+
+    LOG("Opening the socket.");
+
+    global_sck = socket(AF_INET, SOCK_DGRAM, 0);
+    if (global_sck < 0) {
+        LOG("Failed to open the socket");
+        return -1;
     }
 
     return 0;
@@ -287,43 +297,23 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
 // 0 on OK
 int send_query_string(char *query, char *value, int request_id) {
     int node_to_send_to = -1, iteration;
-    char *return_buffer;
-    int tret;
-    int retval = 0;
-    int sck;
+    int retval;
     struct sockaddr_in *server;
 
     LOG("Sending %s with ID %d", query, request_id);
-
-    return_buffer = (char *)malloc(sizeof(char) * (MAX_RETURN_LEN));
-    if (return_buffer == NULL) {
-        LOG("Failed to initialize return buffer");
-        retval = -1;
-        goto out;
-    }
-
-    // open the socket
-    sck = socket(AF_INET, SOCK_DGRAM, 0);
-    if (sck < 0) {
-        LOG("Failed to open the socket");
-        retval = -1;
-        goto closesocket;
-    }
 
     for (iteration = 0; iteration < 3; ++iteration) {
         node_to_send_to = choose_best_node();
         if (node_to_send_to == -1) {
             LOG("Failed to find a node to send to");
-            retval = -1;
-            goto closesocket;
+            return -1;
         }
 
         LOG("Trying to send to server %s (iteration %d)", servers[node_to_send_to], iteration);
 
         server = &server_addresses[node_to_send_to];
-        if (sendto(sck, query, strlen(query), 0, (struct sockaddr *)server, sizeof(*server)) != strlen(query)) {
+        if (sendto(global_sck, query, strlen(query), 0, (struct sockaddr *)server, sizeof(*server)) != strlen(query)) {
             LOG("Sending failed. I might try another server.");
-            retval = -1;
             // error, try another server
             continue;
         }
@@ -331,46 +321,39 @@ int send_query_string(char *query, char *value, int request_id) {
         LOG("Sending OK. Let's get the response.");
 
         do {
-            retval = get_me_the_data_with_timeout(sck, return_buffer, MAX_RETURN_LEN, timeouts[iteration]);
+            retval = get_me_the_data_with_timeout(global_sck, global_return_buffer, MAX_RETURN_LEN, timeouts[iteration]);
 
             if (retval == -1) {
-                // error, go out
-                LOG("Error receiving data. Bailing out.");
-                goto closesocket;
+                // error, try another server 
+                LOG("Error receiving data. Trying another server.");
+                server_not_responsive(node_to_send_to);
+                break;
             } else if (retval == 0) {
                 // timeout, try another server
                 LOG("Query timed out. I might try another server.");
                 server_not_responsive(node_to_send_to);
-                retval = -1;
                 break;
             } else {
-                LOG("Got back: %s", return_buffer);
-                tret = parse_ok_reply(return_buffer, value, request_id);
+                LOG("Got back: %s", global_return_buffer);
+                retval = parse_ok_reply(global_return_buffer, value, request_id);
 
-                if (tret == 0) {
+                if (retval == 0) {
                     LOG("Response OK, happy times");
                     server_responsive(node_to_send_to);
                     // i got ok response
-                    retval = 0;
-                    goto closesocket;
-                } else if (tret == 2) { // failed message
+                    return 0;
+                } else if (retval == 2) { // failed message
                     LOG("Server sent failed message, try another server");
                     server_not_responsive(node_to_send_to);
-                    retval = -1;
                     break;
                 } else {
                     LOG("Response ID from someone else, trying to receive more data");
-                    retval = -1;
                 }
             }
         } while (true);
     }
 
-closesocket:
-    close(sck);
-out:
-    free(return_buffer);
-    return retval;
+    return -1;
 }
 
 // -1 on failure
