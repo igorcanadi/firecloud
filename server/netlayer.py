@@ -109,4 +109,4 @@ class BufSocket(Thread):
     log('Net recv')
     if len(self.inq) > 0:
       return self.inq.poll()
-    return (None, None)
+    raise StopIteration
