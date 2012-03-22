@@ -1,5 +1,4 @@
 #!/bin/sh
-source config.sh
 
 if [ $# -lt 3 ]; then
     echo "usage: ./partition.sh {-A|-D} server1 server2"

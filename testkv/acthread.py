@@ -5,6 +5,7 @@ created by transcribe
 
 from threading import Thread
 from transcribe import HostKill, HostUp, NetKillEvent, NetUpEvent
+from actuator import partition, partition_heal
 
 from time import time, sleep
 
@@ -32,4 +33,10 @@ class ActThread(Thread):
       self.take_action(act)
   
   def take_action(self, act):
-    print 'Doing Action: act'
+    if isinstance(act, NetKillEvent):
+      partition(act.host0, act.host1)
+    else:
+      partition_heal(act.host0, act.host1)
+
+
+

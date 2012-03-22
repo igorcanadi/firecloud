@@ -8,7 +8,6 @@ into the sock's connect method to get get a connection.
 REQUIREMENT: id_rsa in current directory
 """
 import subprocess
-from cnc import remote_exec
 
 from os import system
 
@@ -28,8 +27,9 @@ def partition(host1, host2):
   @type port2: int
   @returns 0 on OK, non-0 on PANIC
   """
-  system('../partition.sh -A {0} {1}'.format(host1, host2))
-
+  c = '../partition.sh -A {0} {1}'.format(host1, host2)
+  print c
+  assert system(c) == 0
 
 
 
@@ -48,7 +48,7 @@ def partition_heal(host1, host2):
   @type port2: int
   @returns 0 on OK, non-0 on PANIC
   """
-  system('../partition.sh -D {0} {1}'.format(host1, host2))
+  assert system('../partition.sh -D {0} {1}'.format(host1, host2)) == 0
 
 
 # kill `lsof | grep 10000 | awk '{print $2}'`
