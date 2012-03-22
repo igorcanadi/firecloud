@@ -18,12 +18,6 @@ TYPE_PACK = 'A'
 TYPE_GET = 'G'
 TYPE_GACK = 'H'
 
-server_pkts_sent  = 0
-server_pkts_recved = 0
-
-client_pkts_sent = 0
-client_pkts_recved = 0
-
 clock = 0
 
 def inc_clock():
@@ -35,9 +29,8 @@ class EventLoop(object):
     self.network = network
 
   def poll(self):
-    """ Infinitely handle packets as they arrive """
-    for pkt in self.network.poll():
-      self.dispatch(pkt.entry, pkt.seq, pkt.type, pkt.is_master)
+    while True:
+      self.network.drain(self)
 
   def dispatch(self, entry, seq, typ, m):
     """ Recieves a packet contents form lower level network layer
@@ -80,6 +73,19 @@ class EventLoop(object):
     log('PACK for ' + str(entry) + str(mast))
     self.network.ack_put_xact(entry, seq, mast)
 
+class Flooder(object):
+  def __init__(self, addrs, me, master):
+    self.addrs = addrs
+    self.r = BufSocket(me)
+
+  def flood(self, orig, data):
+    for a in filter(lambda x: x != orig, self.addrs):
+      self.r.sendto(data, a)
+
+  def flood_ack(self, t, entry, seq):
+    assert type(entry.key) is str
+    inc_clock()
+    self.flood(None, (tuple(entry), self.master, t, self.me, seq, clock))
 
 class Network(object):
   def __init__(self, db, addrs, me, master):
@@ -88,62 +94,45 @@ class Network(object):
     self.db = db
     self.txs = {}
     self.listeners = {}
-    self.rebroadcasts = []
     self.get = re.compile("GET (\[.*?\]) (\[.*?\])")
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
     self.next_zombie = time.time() + 1
+
+    self.flooder = Flooder(addrs, me, master)
 
     self.seen1 = set()
     self.seen2 = set()
 
     addrs.remove(me)
-    self.addrs = addrs
     #self.r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     ###print 'I AM:', me
     #self.r.bind(me)
-    self.r = BufSocket(me)
-    self.r.start()
 
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-
-  def __flood(self, orig, data):
-    global server_pkts_sent
-    for a in filter(lambda x: x != orig, self.addrs):
-      server_pkts_sent += 1
-      self.r.sendto(data, a)
-
-  def flood_ack(self, t, entry, seq):
-    assert type(entry.key) is str
-    inc_clock()
-    self.__flood(None, pickle.dumps((tuple(entry), self.master, t, self.me, seq, clock), 2))
 
   def has_seen(self, pkt):
     return (pkt.clock, pkt.orig) in self.seen1 or (pkt.clock, pkt.orig) in self.seen2
 
+  def see(self, pkt):
+    self.seen1.add((pkt.clock, pkt.orig))
+
   def commit(self, tx):
-    ##print 'Commit: ', tx.entry
-    log('COMMIT: %s' % str(tx.update))
     try:
-      ##print self.listeners
       self.listeners[tx.seq].commit(tx) 
       del self.listeners[tx.seq]
     except KeyError:
       pass
-      ##print 'Didnt find: ', (tx.seq)
     if tx.update is not None:
       self.db.put(tx.update)
 
   def finish(self, tx):
     del self.txs[tx.seq]
 
-  def see(self, pkt):
-    self.seen1.add((pkt.clock, pkt.orig))
-
   def flood_gack_for_key(self, key, seq):
-    self.flood_ack(TYPE_GACK, self.db[key], seq)
+    self.flooder.flood_ack(TYPE_GACK, self.db[key], seq)
 
   def flood_pack_for_key(self, key, seq):
-    self.flood_ack(TYPE_PACK, self.db[key], seq)
+    self.flooder.flood_ack(TYPE_PACK, self.db[key], seq)
 
   def ack_get_xact(self, entry, seq, mast):
     try:
@@ -199,85 +188,30 @@ class Network(object):
     ##print self.db[key]
     assert type(e.key) is str
     inc_clock()
-    pkt = pickle.dumps((tuple(e), self.master, type_, self.me, r, clock), 2)
 
-    global server_pkts_sent
-    server_pkts_sent += 1
-    self.s.sendto(pkt, self.me)
+    pkt = (tuple(e), self.master, type_, self.me, r, clock)
 
-  def rebroadcast(self, tx):
-    self.rebroadcasts.append(tx.entry)
+    self.r.sendto(pkt, self.me)
 
-  def check(self, now):
-    znum = 0
-    tonum = 0
-    for key in self.txs.keys():
-      t = self.txs[key]
-      if t.state == tx.ZOMBIE:
-        znum += t.revive(now)
-        continue
-      if t.timed_out(now):
-        tonum += 1
-        del self.txs[key]
-    return (znum, tonum)
+  def process(self, loop, req, addr):
+    if type(req) is str:
+      self.clientDispatch(data, addr)
+    else:
+      assert type(req) is tuple and len(req) == 5
+      (entry, m, typ, origin, seq, other_clock) = req
+      entry = db.Entry._make(entry)
 
+      global clock
+      clock = max(t[5], clock) + 1
 
-  def bookkeep(self, now):
-    len1 = len(self.seen1)
-    len2 = len(self.seen2)
-    #self.seen2 = self.seen1
-    #self.seen1 = set()
-    
-    self.next_zombie = now + random.uniform(.8, 2);
-    (z,t) = self.check(now)
-    barf("zombie %d timeout %d" % (z,t))
-    barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
-    barf("txs %d : rebroadcast queue %d : listeners %d" % (len(self.txs), len(self.rebroadcasts), len(self.listeners)))
-    barf("ack seen1 %d : ack seen2 %d" % (len1, len2))
-
-  def poll(self):
-    global client_pkts_recved
-    global server_pkts_recved
-    while True:
-      #now = time.time()
-      #if now > self.next_zombie:
-      #  self.bookkeep(now)
-        
-      try:
-        entry = self.rebroadcasts.pop()
-        self.flood_ack(TYPE_PACK, entry, random.random())
-      except IndexError:
-        pass
-
-      (data, addr) = self.r.recvfrom(4096)
-
-      if data[0:4] == 'ping':
-        self.r.sendto('pong', addr)
-        continue
-
-
-      if data[0:3] == 'GET' or data[0:3] == 'PUT':
-        client_pkts_recved += 1
-        log('NET :: ' + data)
-        self.clientDispatch(data, addr)
-      else:
-        server_pkts_recved += 1
-        try:
-          t = pickle.loads(data)
-        except:
-          log('Got bad packet: ' + str(data))
-          continue
-
-
-        global clock
-        clock = max(t[5], clock) + 1
-
-        pkt = Packet._make((db.Entry._make(t[0]), t[1], t[2], t[3], t[4], t[5]))
-        if self.has_seen(pkt): 
-          continue
-
-        ##print pkt
+      if not self.has_seen(seq, origin): 
         self.see(pkt)
-        assert type(pkt.entry.key) is str
-        self.__flood(addr, data)
-        yield pkt
+        self.flooder.flood(addr, data)
+        loop.dispatch(entry, seq, typ, m)
+
+  def drain(self, loop):
+    for (req, addr) in self.flooder.r.recvfrom():
+      self.process(loop, req, addr)
+
+    self.flooder.r.batch_send()
+    self.flooder.r.batch_recv()

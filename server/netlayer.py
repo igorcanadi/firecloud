@@ -105,7 +105,7 @@ class BufSocket(Thread):
     log('Net Send')
     self.outq.append(dat, (host, port))
 
-  def recvfrom(self, size):
+  def recvfrom(self):
     log('Net recv')
     if len(self.inq) > 0:
       return self.inq.poll()
