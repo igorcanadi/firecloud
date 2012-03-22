@@ -2,6 +2,10 @@
 Parameters you can tune
 """
 
+server_list = ( ('192.168.56.101', '8808'), 
+                ('192.168.56.102', '8808'),
+                ('192.168.56.103', '8808'),
+                ('192.168.56.104', '8808') )
 
 # Miliseconds per clock tick
 CLOCK_RATE = 3

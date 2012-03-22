@@ -11,7 +11,14 @@ import subprocess
 
 from os import system
 from os import chdir
+from conf import server_list
 
+def remote_exec(gate, cmd):
+  #retval = subprocess.call(command, shell=True)
+  #if retval != 0:
+  #    return retval
+  print 'ssh -i ../keys/id_rsa -p {0[1]} user739@{0[0]} \"{1}\"'.format(gate, cmd)
+  system('ssh -i ../keys/id_rsa -p {0[1]} user739@{0[0]} \"{1}\" &'.format(gate, cmd))
 
 def partition(host1, host2):
   """ Creates a partition between the server at host1:port1 and 
@@ -69,7 +76,7 @@ def take_server_down(host):
 
 
 # requirement: main.py in the home directory on the server
-def bring_server_up(host, port, hosts):
+def bring_server_up(host, port):
   """ Undo-what ever take_server_down does, so that the server works again
   Implement this only if Swift says we need it
   @type host: str
@@ -79,9 +86,7 @@ def bring_server_up(host, port, hosts):
   @param hosts list of strs in format 'host:port'
   @returns 0 on OK, non-0 on PANIC
   """
-  assert (host, port) in hosts
-  
+  assert (host, port) in server_list
   index = hosts.index((host, port))
-  hosts = map(lambda t: ':'.join(t), hosts)
   command = "python ~/main.py %d %s" % (index, " ".join(hosts))
   remote_exec((host, port), command)
