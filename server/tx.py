@@ -1,7 +1,8 @@
 import time
 from db import Entry
+import net
 
-from logger import log
+from logger import log, barf
 
 UNCOMMITED = 0
 COMMIT = 88
@@ -13,8 +14,8 @@ FINISH = 78
 normal = 1
 master = 2
 
-TIMEOUT = 2
-ZOMBIE_TIMEOUT = 3
+TIMEOUT = 1
+ZOMBIE_TIMEOUT = 1
 
 
 STATETBL = {
@@ -34,7 +35,7 @@ def transition(state, arrow):
   try:
     return STATETBL[state][arrow]
   except KeyError:
-    log('INVALID State Transition: in state {0} with tranition of {1}'.format(state, arrow))
+    barf('INVALID State Transition: in state {0} with tranition of {1}'.format(state, arrow))
     raise Exception('Invalid State Transition -- see log.')
   return
 
@@ -100,6 +101,7 @@ class Listener(object):
     # send old (or current) value
     #print "sending to client:"
     log('TX to Client :: OK %s %s' % (self.opaque, tx.entry.val))
+    net.client_pkts_sent += 1
     self.sock.sendto("OK %s %s" % (self.opaque, tx.entry.val), self.addr)
 
 class Tx(object):
@@ -118,6 +120,8 @@ class Tx(object):
     if now > self.start + ZOMBIE_TIMEOUT:
       self.net.rebroadcast(self)
       self.net.finish(self)
+      return 1
+    return 0
 
   def finish(self):
     self.net.finish(self)
