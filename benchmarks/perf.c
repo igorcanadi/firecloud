@@ -4,7 +4,7 @@
 #include "../client/lib739kv.h"
 
 int main() {
-    int i;
+    long long i;
     char *s[5];
     char t1[100], t2[100], t3[100], t4[100], b[100];
     char buf[1000];
@@ -25,10 +25,10 @@ int main() {
     sprintf(t3, "yay");
     sprintf(t4, "wohoooooo");
 
-    int er = 0;
+    long long er = 0;
     int start_time = time(NULL); 
 
-    for (i = 0; i < 108000; ++i) {
+    for (i = 0; ; ++i) {
       t1[1] = rand()%3 + '0';
       t1[2] = rand()%10 + '0';
       t2[1] = rand()%3 + '0';
@@ -40,7 +40,7 @@ int main() {
       if (r == -1) ++er;
 
       if (i % 1800 == 0) {
-          printf("time elapsed: %d ----- errors: %d/%d\n", time(NULL) - start_time, er, i*2);
+          printf("time elapsed: %d ----- errors: %lld/%lld\n", time(NULL) - start_time, er, i*2);
       }
     }
 
