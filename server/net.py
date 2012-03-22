@@ -86,6 +86,7 @@ class Network(object):
     self.db = db
     self.txs = {}
     self.listeners = {}
+    self.rebroadcasts = []
     self.seen = set()
     self.get = re.compile("GET (\[.*?\]) (\[.*?\])")
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
@@ -199,7 +200,7 @@ class Network(object):
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
-    self.flood_ack(TYPE_PACK, tx.entry, random.random())
+    self.rebroadcasts.append(tx.entry)
 
   def check(self, now):
     znum = 0
@@ -220,13 +221,19 @@ class Network(object):
     global server_pkts_recved
     while True:
       now = time.time()
-      if now > self.last_zombie + random.uniform(.5, 2): 
+      if now > (self.last_zombie + random.uniform(.5, 2)): 
+        barf("over a %s sec period" % (str(now - self.last_zombie)))
         self.last_zombie = now
         (z,t) = self.check(now)
-        barf("over a %s sec period" % (str(time.time() - self.last_zombie)))
         barf("zombie %d timeout %d" % (z,t))
         barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
         
+
+      try:
+        entry = self.rebroadcasts.pop()
+        self.flood_ack(TYPE_PACK, tx.entry, random.random())
+      except IndexError:
+        pass
 
       (data, addr) = self.r.recvfrom(4096)
 
