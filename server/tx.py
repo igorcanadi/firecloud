@@ -100,6 +100,7 @@ class Listener(object):
     # send old (or current) value
     #print "sending to client:"
     log('TX to Client :: OK %s %s' % (self.opaque, tx.entry.val))
+    net.client_pkts_sent += 1
     self.sock.sendto("OK %s %s" % (self.opaque, tx.entry.val), self.addr)
 
 class Tx(object):

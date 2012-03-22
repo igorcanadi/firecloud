@@ -16,6 +16,12 @@ TYPE_PACK = 'A'
 TYPE_GET = 'G'
 TYPE_GACK = 'H'
 
+server_pkts_sent  = 0
+server_pkts_recved = 0
+
+client_pkts_sent = 0
+client_pkts_recved = 0
+
 clock = 0
 
 def inc_clock():
@@ -94,7 +100,9 @@ class Network(object):
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
   def __flood(self, orig, data):
+    global server_pkts_sent
     for a in filter(lambda x: x != orig, self.addrs):
+      server_pkts_sent += 1
       self.s.sendto(data, a)
 
   def flood_ack(self, t, entry, seq):
@@ -185,29 +193,43 @@ class Network(object):
     assert type(e.key) is str
     inc_clock()
     pkt = pickle.dumps((tuple(e), self.master, type_, self.me, r, clock), 2)
+
+    global server_sent_pkts
+    server_sent_pkts += 1
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
     self.flood_ack(TYPE_PACK, tx.entry, random.random())
 
   def check(self, now):
+    znum = 0
+    tonum = 0
     for key in self.txs.keys():
       t = self.txs[key]
       if t.state == tx.ZOMBIE:
+        znum += 1
         t.revive(now)
         return
       if t.timed_out(now):
+        tonum += 1
         del self.txs[key]
+    return (znum, tonum)
 
 
   def poll(self):
+    global client_pkts_recved
+    global server_pkts_recved
     while True:
       now = time.time()
       if now > self.last_zombie + random.uniform(.5, 2): 
         self.last_zombie = now
-        self.check(now)
+        (z,t) = self.check(now)
+        barf("time: " + str(time.time()))
+        barf("zombie %d timeout %d" % (z,t))
+        barf("srv out %d : srv in %d ;; cl out %d : cl in %d" % (server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
+        
 
-      (data, addr) = self.r.recvfrom(10000)
+      (data, addr) = self.r.recvfrom(4096)
 
       if data[0:4] == 'ping':
         self.s.sendto('pong', addr)
@@ -215,9 +237,11 @@ class Network(object):
 
 
       if data[0:3] == 'GET' or data[0:3] == 'PUT':
+        client_pkts_recved += 1
         log('NET :: ' + data)
         self.clientDispatch(data, addr)
       else:
+        server_pkts_recved += 1
         try:
           t = pickle.loads(data)
         except:
