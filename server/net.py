@@ -87,10 +87,12 @@ class Network(object):
     self.txs = {}
     self.listeners = {}
     self.rebroadcasts = []
-    self.seen = set()
     self.get = re.compile("GET (\[.*?\]) (\[.*?\])")
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
     self.last_zombie = time.time()
+
+    self.seen1 = set()
+    self.seen2 = set()
 
     addrs.remove(me)
     self.addrs = addrs
@@ -112,7 +114,7 @@ class Network(object):
     self.__flood(None, pickle.dumps((tuple(entry), self.master, t, self.me, seq, clock), 2))
 
   def has_seen(self, pkt):
-    return (pkt.clock, pkt.orig) in self.seen
+    return (pkt.clock, pkt.orig) in self.seen1 or (pkt.clock, pkt.orig) in self.seen2
 
   def commit(self, tx):
     ##print 'Commit: ', tx.entry
@@ -131,7 +133,7 @@ class Network(object):
     del self.txs[tx.seq]
 
   def see(self, pkt):
-    self.seen.add((pkt.clock, pkt.orig))
+    self.seen1.add((pkt.clock, pkt.orig))
 
   def flood_gack_for_key(self, key, seq):
     self.flood_ack(TYPE_GACK, self.db[key], seq)
@@ -216,19 +218,24 @@ class Network(object):
     return (znum, tonum)
 
 
+  def bookkeep(self, now):
+    self.seen2 = self.seen1
+    self.seen1 = set()
+    
+    barf("over a %s sec period" % (str(now - self.last_zombie)))
+    self.last_zombie = now
+    (z,t) = self.check(now)
+    barf("zombie %d timeout %d" % (z,t))
+    barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
+
   def poll(self):
     global client_pkts_recved
     global server_pkts_recved
     while True:
       now = time.time()
-      if now > (self.last_zombie + random.uniform(.5, 2)): 
-        barf("over a %s sec period" % (str(now - self.last_zombie)))
-        self.last_zombie = now
-        (z,t) = self.check(now)
-        barf("zombie %d timeout %d" % (z,t))
-        barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
+      if now > (self.last_zombie + random.uniform(.8, 2)): 
+        self.bookkeep(now)
         
-
       try:
         entry = self.rebroadcasts.pop()
         self.flood_ack(TYPE_PACK, entry, random.random())
