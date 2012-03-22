@@ -61,7 +61,7 @@ def build_plan(sys, rate):
       # we always buffer events in the plan
       plan.append( (ti, evt) )
   # Add the termination step
-  clog.append( (ti + rate, tick+1, None) )
+  clog.append( (ti + rate, last_tick+1, None) )
   return ClientThread(clog), plan, msec_slack / 1000.0
     
   
