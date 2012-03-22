@@ -103,8 +103,10 @@ class BufSocket(Thread):
   
   def sendto(self, dat, (host, port)):
     log('Net Send')
-    self.outq.put(dat, (host, port))
+    self.outq.append(dat, (host, port))
 
   def recvfrom(self, size):
     log('Net recv')
-    return self.inq.get()
+    if len(self.inq) > 0:
+      return self.inq.poll()
+    return (None, None)
