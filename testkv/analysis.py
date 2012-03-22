@@ -35,6 +35,13 @@ def skip_errors(ctrace):
       continue
     yield (tick, sec, evt, txt)
 
+
+def stat_trace(ctrace):
+  """ Returns a tuple of state for a trace
+  (#reqs made, #errors, effective_time (secs), msec / req)
+  """
+  return ctrace.reqcount, count_errors(ctrace), ctrace.slack, ctrace.slack * 1000.0 / ctrace.reqcount
+
 def ticks_in_order(ctrace):
   """ Determines if all ticks came back in order
   """

@@ -43,7 +43,6 @@ def partition(host1, host2):
 
 
 
-
 def partition_heal(host1, host2):
   """ Removes any partition between the two servers. 
   After calling this, the server at host1:port1 and the 
@@ -58,7 +57,11 @@ def partition_heal(host1, host2):
   @type port2: int
   @returns 0 on OK, non-0 on PANIC
   """
-  assert system('../partition.sh -D {0} {1}'.format(host1, host2)) == 0
+  chdir('..')
+  c = './partition.sh -D {0} {1}'.format(host1, host2)
+  print c
+  assert system(c) == 0
+  chdir('testkv')
 
 
 # kill `lsof | grep 10000 | awk '{print $2}'`
@@ -88,8 +91,8 @@ def bring_server_up(host, port):
   @returns 0 on OK, non-0 on PANIC
   """
   hosts = server_list
-  assert (host, port) in server_list
-  index = hosts.index((host, port))
+  assert [host, port] in server_list
+  index = hosts.index([host, port])
   hl = map( lambda t: ':'.join(t), server_list)
   command = "python ~/server/main.py %s %s" % (index, " ".join(hl))
   remote_exec((host, port), command)

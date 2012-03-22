@@ -35,6 +35,12 @@ class Client(object):
   def recover(self, node):
     self.xcript.record(RecoverEvent(node.host, node.port))
 
+  def __getitem__(self, name):
+    return self.store[name]
+  
+  def __setitem__(self, name, val):
+    self.store[name] = val
+
 
 class Clock(object):
   def __init__(self):
@@ -64,7 +70,17 @@ class Network(object):
         if a == b:
           continue
 
-  def __setitem__(self, (a, b), val):
+  def __setitem__(self, tup, val):
+    if type(tup) is tuple:
+      return self._set_edge(tup, val)
+    else:
+      srv = tup
+      for node in self.nodes:
+        if node == srv:
+          continue
+        self._set_edge((srv, node), val)
+
+  def _set_edge(self, (a, b), val):
     if b < a:
       t = a
       a = b
