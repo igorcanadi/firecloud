@@ -219,6 +219,8 @@ class Network(object):
 
 
   def bookkeep(self, now):
+    len1 = len(self.seen1)
+    len2 = len(self.seen2)
     self.seen2 = self.seen1
     self.seen1 = set()
     
@@ -227,6 +229,8 @@ class Network(object):
     (z,t) = self.check(now)
     barf("zombie %d timeout %d" % (z,t))
     barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
+    barf("txs %d : rebroadcast queue %d : listeners %d" % (len(self.txs), len(self.rebroadcasts), len(self.listeners)))
+    barf("ack seen1 %d : ack seen2 %d" % (len1, len2))
 
   def poll(self):
     global client_pkts_recved
