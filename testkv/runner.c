@@ -217,7 +217,7 @@ int sleep_until(unsigned long time) {
   /* to sleep: */
   unsigned long sleepusec = time - offset;
   /* print slack time */
-  if (sleepusec > 20000 * 1000) {
+  if (sleepusec > 200000 * 1000) {
     printf("+ -1 ERROR: Sleeping WAAAY too long.\n");
     exit(1);
   }

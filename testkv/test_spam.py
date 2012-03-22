@@ -15,13 +15,13 @@ hard_reset()
 
 harn = create_harness()
 
-NUM_CLIENTS = 10
+NUM_CLIENTS = 3
 
-REQS = 1000
+REQS = 2000
 
 clients = [harn.client_by_mask( 0XF ) for x in xrange(NUM_CLIENTS)]
 
-CLOCK_RATE = 0.1
+CLOCK_RATE = 0.5
 
 for r in xrange(REQS/NUM_CLIENTS):
   for cl in clients:
