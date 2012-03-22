@@ -188,7 +188,7 @@ class Network(object):
     self.s.sendto(pkt, self.me)
 
   def rebroadcast(self, tx):
-    self.flood_ack(TYPE_PUT, tx.entry, random.random())
+    self.flood_ack(TYPE_PACK, tx.entry, random.random())
 
   def check(self, now):
     for key in self.txs.keys():
