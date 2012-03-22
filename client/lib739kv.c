@@ -28,12 +28,6 @@
 #else
     #define LOG(x, args...) do { } while(0)
 #endif
-#define ALWAYS_LOG(x, args...) do { \
-        struct timeval tv; \
-        gettimeofday(&tv, NULL); \
-        fprintf(stderr, "[%d.%06d] %s():%d -- " x "\n", tv.tv_sec, tv.tv_usec, __func__, __LINE__, ## args); \
-    } while (false)
-
 
 char *servers[MAX_SERVERS];
 int server_priority[MAX_SERVERS];
@@ -235,13 +229,18 @@ int get_me_the_data_with_timeout(int sck, char *ret, int max_ret_size, int timeo
 }
 
 // * OK [unique_id] [value]
+// * FL [unique_id]
 // return 0 if i got the correct request_id
-// return 1 if request_id is differnet
+// return 1 if request_id is differnt
+// return 2 if we got failed message
 // return -1 if error in parsing
 int parse_ok_reply(char *reply, char *value, int request_id) {
-    int i, id_got = 0, state = 0, i_val = 0;
+    int i, ok, fail, id_got = 0, state = 0, i_val = 0;
 
-    if (strncmp("OK", reply, 2) != 0) {
+    ok = strncmp("OK", reply, 2) == 0;
+    fail = strncmp("FL", reply, 2) == 0;
+
+    if (!ok && !fail) {
         return -1;
     }
         
@@ -254,7 +253,7 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
         } else if (reply[i] == ']') {
             if (state == 1) {
                 if (id_got != request_id) {
-                    //return 1;
+                    return 1;
                 }
                 ++state;
             } else if (state == 3) {
@@ -274,13 +273,12 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
     }
     value[i_val] = '\0';
     
-    if (id_got == request_id && state == 4) {
-        // parsing good
-        return 0;
-    }
-    if (state == 4) {
-        // parsing good, request_id bad
-        ALWAYS_LOG("Uh oh, I was expecting %d, but i got %d\n", request_id, id_got);
+    if (id_got == request_id) {
+        if (ok && state == 4) {
+            return 0; // OK
+        } else if (fail && state == 2) {
+            return 2; // FL
+        }
     }
     return -1;
 }
@@ -290,6 +288,7 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
 int send_query_string(char *query, char *value, int request_id) {
     int node_to_send_to = -1, iteration;
     char *return_buffer;
+    int tret;
     int retval = 0;
     int sck;
     struct sockaddr_in *server;
@@ -346,14 +345,23 @@ int send_query_string(char *query, char *value, int request_id) {
                 break;
             } else {
                 LOG("Got back: %s", return_buffer);
-                server_responsive(node_to_send_to);
-                if (parse_ok_reply(return_buffer, value, request_id) == 0) {
+                tret = parse_ok_reply(return_buffer, value, request_id);
+
+                if (tret == 0) {
                     LOG("Response OK, happy times");
+                    server_responsive(node_to_send_to);
                     // i got ok response
                     retval = 0;
                     goto closesocket;
+                } else if (tret == 2) { // failed message
+                    LOG("Server sent failed message, try another server");
+                    server_not_responsive(node_to_send_to);
+                    retval = -1;
+                    break;
+                } else {
+                    LOG("Response ID from someone else, trying to receive more data");
+                    retval = -1;
                 }
-                LOG("Response NOT ok, trying to receive more data");
             }
         } while (true);
     }
