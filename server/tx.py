@@ -14,8 +14,8 @@ FINISH = 78
 normal = 1
 master = 2
 
-TIMEOUT = 2
-ZOMBIE_TIMEOUT = 3
+TIMEOUT = 1
+ZOMBIE_TIMEOUT = 1
 
 
 STATETBL = {
@@ -120,6 +120,8 @@ class Tx(object):
     if now > self.start + ZOMBIE_TIMEOUT:
       self.net.rebroadcast(self)
       self.net.finish(self)
+      return 1
+    return 0
 
   def finish(self):
     self.net.finish(self)

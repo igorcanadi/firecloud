@@ -207,8 +207,7 @@ class Network(object):
     for key in self.txs.keys():
       t = self.txs[key]
       if t.state == tx.ZOMBIE:
-        znum += 1
-        t.revive(now)
+        znum += t.revive(now)
         continue
       if t.timed_out(now):
         tonum += 1
@@ -224,7 +223,7 @@ class Network(object):
       if now > self.last_zombie + random.uniform(.5, 2): 
         self.last_zombie = now
         (z,t) = self.check(now)
-        barf("time: " + str(time.time()))
+        barf("over a %s sec period" % (str(time.time() - self.last_zombie)))
         barf("zombie %d timeout %d" % (z,t))
         barf("%s srv out %d : srv in %d ;; cl out %d : cl in %d" % (str(self.me), server_pkts_sent, server_pkts_recved, client_pkts_sent, client_pkts_recved))
         
