@@ -12,6 +12,9 @@ import subprocess
 from os import system
 from os import chdir
 from conf import server_list
+from time import sleep
+
+RESET_DELAY = 0.4
 
 def remote_exec(gate, cmd):
   #retval = subprocess.call(command, shell=True)
@@ -65,7 +68,7 @@ def partition_heal(host1, host2):
 
 
 # kill `lsof | grep 10000 | awk '{print $2}'`
-def take_server_down(host, port):
+def take_server_down(host, port=None):
   """ Takes the server down / kills the process / kills the VM.
   Implement this only if Swift says we need it
   @type host: str
@@ -75,8 +78,23 @@ def take_server_down(host, port):
   @returns 0 on OK, non-0 on PANIC
   """
   #command = "kill `lsof | grep %s | awk '{print $2}'`" % (port)
-  command = "killall python"
-  remote_exec((host, port), command)
+  command = "killall python 2>/dev/null"
+  remote_exec((host, 22), command)
+
+
+# kill `lsof | grep 10000 | awk '{print $2}'`
+def flush_iptables(host):
+  """ Takes the server down / kills the process / kills the VM.
+  Implement this only if Swift says we need it
+  @type host: str
+  @param host: a string that is either the IP address or something that
+  DNS can resolve to an IP adddress
+  @type port: int
+  @returns 0 on OK, non-0 on PANIC
+  """
+  #command = "kill `lsof | grep %s | awk '{print $2}'`" % (port)
+  command = "sudo iptables --flush"
+  remote_exec((host, 22), command)
 
 
 # requirement: main.py in the home directory on the server
@@ -95,4 +113,14 @@ def bring_server_up(host, port):
   index = hosts.index([host, port])
   hl = map( lambda t: ':'.join(t), server_list)
   command = "python ~/server/main.py %s %s" % (index, " ".join(hl))
-  remote_exec((host, port), command)
+  remote_exec((host, 22), command)
+
+
+def hard_reset():
+  print 'Hard Reset on cluster'
+  for host, port in server_list:
+    take_server_down(host)
+    flush_iptables(host)
+    bring_server_up(host, port)
+  sleep(RESET_DELAY)
+    

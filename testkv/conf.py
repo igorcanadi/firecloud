@@ -13,7 +13,7 @@ server_list = load_servers('servers.cfg')
     
 
 # Miliseconds per clock tick
-CLOCK_RATE = 3
+CLOCK_RATE = 50
 
 # Time window to skip before a network outage to let it stabalize 
 # in miliseconds
@@ -24,6 +24,9 @@ POST_NETWORK_WINDOW = 10
 # Window which all clients have to synchronize
 # This accounts for processor scheduling issues
 SYNC_WINDOW = 100
+
+# Delay for thigns, in msec
+ACTION_DELAY = 500
 
 MAX_VALUE_SIZE = 2048
 MAX_KEY_SIZE = 128

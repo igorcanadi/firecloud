@@ -10,6 +10,7 @@ from collections import namedtuple
 from time import time
 from cout import run_transcript, Init, Recover, Fail, Get, Put, \
                  ClientThread
+from conf import ACTION_DELAY
 
 
 PutEvent = namedtuple('Put', ['k', 'v'])
@@ -21,14 +22,6 @@ HostUp = namedtuple('HostKill', ['host', 'port'])
 FailEvent = namedtuple('Fail', ['host', 'port'])
 RecoverEvent = namedtuple('Recover', ['host', 'port'])
 
-
-COMMON_DELAY = 500
-
-INIT_DELAY = 300
-PRE_NETWORK = 1000
-POST_NETWORK = 1000
-PRE_HOSTSTATE = 1000
-POST_HOSTSTATE = 1000
 
 
 def build_plan(sys, rate):
@@ -67,9 +60,9 @@ def build_plan(sys, rate):
       clog.append((ti, tick, e))
     else:
       # we always buffer events in the plan
-      ti += COMMON_DELAY
+      ti += ACTION_DELAY
       plan.append( (ti, evt) )
-      ti += COMMON_DELAY
+      ti += ACTION_DELAY
   # Add the termination step
   clog.append( (ti + rate, tick+1, None) )
   return ClientThread(clog), plan, msec_slack / 1000.0
