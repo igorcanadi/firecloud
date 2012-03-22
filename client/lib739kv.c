@@ -28,6 +28,11 @@
 #else
     #define LOG(x, args...) do { } while(0)
 #endif
+#define ALWAYS_LOG(x, args...) do { \
+        struct timeval tv; \
+        gettimeofday(&tv, NULL); \
+        fprintf(stderr, "[%d.%06d] %s():%d -- " x "\n", tv.tv_sec, tv.tv_usec, __func__, __LINE__, ## args); \
+    } while (false)
 
 
 char *servers[MAX_SERVERS];
@@ -249,7 +254,7 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
         } else if (reply[i] == ']') {
             if (state == 1) {
                 if (id_got != request_id) {
-                    return 1;
+                    //return 1;
                 }
                 ++state;
             } else if (state == 3) {
@@ -272,6 +277,10 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
     if (id_got == request_id && state == 4) {
         // parsing good
         return 0;
+    }
+    if (state == 4) {
+        // parsing good, request_id bad
+        ALWAYS_LOG("Uh oh, I was expecting %d, but i got %d\n", request_id, id_got);
     }
     return -1;
 }
