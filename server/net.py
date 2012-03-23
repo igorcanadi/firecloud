@@ -165,35 +165,42 @@ class Network(object):
     if data[0] == 'G':
       m = self.get.match(data)
       key = m.group(1)
-      ##print 'Matched to: key: ', key
       opaque = m.group(2)
-      value = None
-      type_ = TYPE_GET
+      self.clientGet(key, opaque, addr)
     else:
       m = self.put.match(data)
       key = m.group(1)
       value = m.group(2)
-      ##print 'Matched to: value: ', value
       opaque = m.group(3)
-      type_ = TYPE_PUT
+      self.clientPut(key, value, opaque, addr)
 
+  def clientGet(self, key, opaque, addr):
     inc_clock()
-    r = random.random()
-    ##print key
-    assert type(key) is str
-    e = db.Entry(key, (clock, self.me), value if type_ == TYPE_PUT else self.db[key].val)
-    self.listeners[r] = tx.Listener(self.db, opaque, self.s, addr)
-    if type_ == TYPE_GET:
-      t = tx.Tx(self, r)
-      self.txs[r] = t
+    seq = random.random()
+    e = db.Entry(key, (clock, self.me), self.db[key].val)
 
-    ##print self.db[key]
-    assert type(e.key) is str
+    self.listeners[seq] = tx.Listener(self.db, opaque, self.s, addr)
+
+    t = tx.Tx(self, seq)
+    self.txs[seq] = t
+
+    pkt = (tuple(e), self.master, TYPE_GET, self.me, seq, clock)
+    self.flooder.flood(self.me, pkt)
+    self.flood_gack_for_key(key, seq)
+
+  def clientPut(self, key, value, opaque, addr):
     inc_clock()
+    seq = random.random()
+    e = db.Entry(key, (clock, self.me), value)
 
-    pkt = (tuple(e), self.master, type_, self.me, r, clock)
+    self.listeners[seq] = tx.Listener(self.db, opaque, self.s, addr)
 
-    self.flooder.r.sendto(pkt, self.me)
+    t = tx.Tx(self, seq)
+    self.txs[seq] = t
+
+    pkt = (tuple(e), self.master, TYPE_PUT, self.me, seq, clock)
+    self.flooder.flood(self.me, pkt)
+    self.flood_pack_for_key(key, seq)
 
   def process(self, loop, req, addr):
     if type(req) is str:
