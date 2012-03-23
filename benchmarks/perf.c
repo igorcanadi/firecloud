@@ -9,12 +9,14 @@ int size_lags = 0;
 long long global_clock;
 
 void start_time() {
+    return;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     global_clock = tv.tv_usec + tv.tv_sec * 1000000;
 }
 
 void end_time() {
+    return;
     struct timeval tv;
     gettimeofday(&tv, NULL);
     lags[size_lags++] = tv.tv_usec + tv.tv_sec * 1000000 - global_clock;
@@ -50,7 +52,7 @@ int main() {
     long long er = 0;
     int s_time = time(NULL); 
 
-    for (i = 0; i < 5000; ++i) {
+    for (i = 0; ; ++i) {
       t1[1] = rand()%3 + '0';
       t1[2] = rand()%10 + '0';
       t2[1] = rand()%3 + '0';
@@ -67,7 +69,7 @@ int main() {
       if (r == -1) ++er;
 
       if (i % 1800 == 0) {
-          //printf("time elapsed: %d ----- errors: %lld/%lld\n", time(NULL) - s_time, er, i*2);
+          printf("time elapsed: %d ----- errors: %lld/%lld\n", time(NULL) - s_time, er, i*2);
       }
     }
 
