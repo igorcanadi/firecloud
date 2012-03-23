@@ -17,8 +17,7 @@
 #include <stdbool.h>
 #include "lib739kv.h"
 #define MAX_SERVERS 4
-#define MAX_VALUE_LEN 2048
-#define MAX_RETURN_LEN 3000
+#define MAX_RETURN_LEN 4000
 #ifdef VERBOSE
     #define LOG(x, args...) do { \
             struct timeval tv; \
@@ -30,12 +29,13 @@
 #endif
 
 char global_return_buffer[MAX_RETURN_LEN];
+char global_query_string[MAX_RETURN_LEN];
 char *servers[MAX_SERVERS];
 int server_priority[MAX_SERVERS];
 char killed[MAX_SERVERS];
 int nodes_down;
 int servers_size;
-int last_unique_id;
+long long last_unique_id;
 int global_sck;
 struct sockaddr_in server_addresses[MAX_SERVERS];
 // timeouts are in microseconds
@@ -52,7 +52,7 @@ int kv739_init(char *s[]) {
     LOG("Initializing the client...");
 
     srand(time(NULL));
-    last_unique_id = rand() % 10000;
+    last_unique_id = ((long long)rand() << 32) + rand();
 
     for (servers_size = 0; servers_size < MAX_SERVERS && s[servers_size][0]; ++servers_size) {
         servers[servers_size] = (char *)malloc(sizeof(char) * (sizeof(s[servers_size]) + 1));
@@ -244,8 +244,9 @@ int get_me_the_data_with_timeout(int sck, char *ret, int max_ret_size, int timeo
 // return 1 if request_id is differnt
 // return 2 if we got failed message
 // return -1 if error in parsing
-int parse_ok_reply(char *reply, char *value, int request_id) {
-    int i, ok, fail, id_got = 0, state = 0, i_val = 0;
+int parse_ok_reply(char *reply, char *value, long long request_id) {
+    int i, ok, fail, state = 0, i_val = 0;
+    long long id_got = 0;
 
     ok = strncmp("OK", reply, 2) == 0;
     fail = strncmp("FL", reply, 2) == 0;
@@ -295,12 +296,12 @@ int parse_ok_reply(char *reply, char *value, int request_id) {
 
 // -1 on faliure
 // 0 on OK
-int send_query_string(char *query, char *value, int request_id) {
+int send_query_string(char *query, char *value, long long request_id) {
     int node_to_send_to = -1, iteration;
     int retval;
     struct sockaddr_in *server;
 
-    LOG("Sending %s with ID %d", query, request_id);
+    LOG("Sending %s with ID %lld", query, request_id);
 
     for (iteration = 0; iteration < 3; ++iteration) {
         node_to_send_to = choose_best_node();
@@ -360,29 +361,17 @@ int send_query_string(char *query, char *value, int request_id) {
 // 0 on all ok
 // 1 on no key
 int kv739_get(char *key, char *value) {
-    char *query_string;
     int retval;
 
-    query_string = (char *)malloc(sizeof(char) * (30 + strlen(key)));
-    if (query_string == NULL) {
-        LOG("Failed to initialize query string");
-        return -1;
-    }
+    sprintf(global_query_string, "GET [%s] [%lld]", key, ++last_unique_id);
 
-    if (last_unique_id == INT_MAX) {
-        last_unique_id = 0;
-    }
-
-    sprintf(query_string, "GET [%s] [%d]", key, ++last_unique_id);
-
-    retval = send_query_string(query_string, value, last_unique_id);
+    retval = send_query_string(global_query_string, value, last_unique_id);
     if (retval == 0 && strlen(value) == 0) {
         // no key
         retval = 1;
     }
     LOG("GET retval: %d, value: %s", retval, retval == -1 ? "" : value);
 
-    free(query_string);
     return retval;
 }
 
@@ -391,28 +380,16 @@ int kv739_get(char *key, char *value) {
 // 1 no old value
 int kv739_put(char *key, char *value, char *old_value) {
     int retval;
-    char *query_string;
 
-    query_string = (char *)malloc(sizeof(char) * (30 + strlen(key) + strlen(value)));
-    if (query_string == NULL) {
-        LOG("Failed to initialize query string");
-        return -1;
-    }
+    sprintf(global_query_string, "PUT [%s] [%s] [%lld]", key, value, ++last_unique_id);
 
-    if (last_unique_id == INT_MAX) {
-        last_unique_id = 0;
-    }
-
-    sprintf(query_string, "PUT [%s] [%s] [%d]", key, value, ++last_unique_id);
-
-    retval = send_query_string(query_string, old_value, last_unique_id);
+    retval = send_query_string(global_query_string, old_value, last_unique_id);
     if (retval == 0 && strlen(old_value) == 0) {
         // no old value
         retval = 1;
     }
     LOG("PUT retval: %d, old value: %s", retval, retval == -1 ? "" : old_value);
 
-    free(query_string);
     return retval;
 }
 
