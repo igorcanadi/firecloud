@@ -211,7 +211,7 @@ class Network(object):
       global clock
       clock = max(other_clock, clock) + 1
 
-      if not self.has_seen(typ, see, origin): 
+      if not self.has_seen(typ, seq, origin): 
         self.see(typ, seq, origin)
         self.flooder.flood(addr, req)
         loop.dispatch(entry, seq, typ, m)
