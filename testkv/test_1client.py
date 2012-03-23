@@ -17,18 +17,15 @@ harn = create_harness()
 
 NUM_CLIENTS = 4
 
-REQS = 3000
+REQS = 2
 
-clients = [harn.client_by_mask( 0XF ) for x in xrange(NUM_CLIENTS)]
+cli = harn.client_by_mask(0xF)
 
-CLOCK_RATE = 1
+CLOCK_RATE = 1000
 
-for r in xrange(REQS/NUM_CLIENTS):
-  for cl in clients:
-    if r % 2 == 0:
-      cl['foo'] = str(cl) + str(r)
-    else:
-      cl['foo']
+for r in xrange(REQS/2):
+  cli['foo'] = r
+  cli['foo']
 
 start = time()
 harn.execute(CLOCK_RATE)
@@ -37,6 +34,7 @@ end = time()
 print 'Delta time (s): ', end - start
 print 'Reqs / second: ', REQS * 1.0 / (end-start)
 
+print 'Strict Ordering: ', eval_strict_ordering(cli.ctrace)
 
 harn.print_stats()
 

@@ -14,12 +14,12 @@ server_list = load_servers('servers.cfg')
 
 
 # Miliseconds per clock tick
-CLOCK_RATE = 10
+CLOCK_RATE = 20
 
 # Time window to skip before a network outage to let it stabalize 
 # in miliseconds
-PRE_NETWORK_WINDOW = 100
-POST_NETWORK_WINDOW = 500
+PRE_NETWORK_WINDOW = 300
+POST_NETWORK_WINDOW = 700
 
 
 # Window which all clients have to synchronize
