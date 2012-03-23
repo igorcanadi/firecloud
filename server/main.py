@@ -15,7 +15,8 @@ def main(idx, master, addrs):
   log('master is:' + str(master))
   #print 'Starting as {0} as master? {1}'.format(me, master)
   n = net.Network(d, addrs, me, master)
-  n.loop()
+  evtloop = net.EventLoop(n)
+  evtloop.poll()
 
 if len(sys.argv) <= 1:
   print "usage: main.py IDX host:port [host:port ...]"

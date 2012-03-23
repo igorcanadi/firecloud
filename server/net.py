@@ -7,21 +7,30 @@ import db
 import time
 import random
 
+from netlayer import BufSocket
 
 from logger import log, barf
 
+Packet = namedtuple('Packet', ['entry', 'is_master', 'type', 'orig', 'seq', 'clock'])
 
 TYPE_PUT = 'P'
 TYPE_PACK = 'A'
 TYPE_GET = 'G'
 TYPE_GACK = 'H'
 
+clock = 0
 
-import flooder
+def inc_clock():
+  global clock
+  clock += 3
 
-class Dispatcher(object):
-  def __init__(self):
-    pass
+class EventLoop(object):
+  def __init__(self, network):
+    self.network = network
+
+  def poll(self):
+    while True:
+      self.network.drain(self)
 
   def dispatch(self, entry, seq, typ, m):
     """ Recieves a packet contents form lower level network layer
@@ -34,7 +43,6 @@ class Dispatcher(object):
         TYPE_PUT : self._handle_put,
         TYPE_PACK : self._handle_put_ack
       }
-    print typ
     assert typ in handlers
     handlers[typ](entry, seq, typ, m)
 
@@ -65,21 +73,50 @@ class Dispatcher(object):
     log('PACK for ' + str(entry) + str(mast))
     self.network.ack_put_xact(entry, seq, mast)
 
+class Flooder(object):
+  def __init__(self, addrs, me, master):
+    self.addrs = addrs
+    self.r = BufSocket(me)
+    self.me = me
+    self.master = master
+
+  def flood(self, orig, data):
+    for a in filter(lambda x: x != orig, self.addrs):
+      self.r.sendto(data, a)
+
+  def flood_ack(self, t, entry, seq):
+    assert type(entry.key) is str
+    inc_clock()
+    self.flood(None, (tuple(entry), self.master, t, self.me, seq, clock))
 
 class Network(object):
   def __init__(self, db, addrs, me, master):
+    self.master = int(master)
+    self.me = me
     self.db = db
     self.txs = {}
     self.listeners = {}
-    self.me = me
-
     self.get = re.compile("GET (\[.*?\]) (\[.*?\])")
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
+    self.next_zombie = time.time() + 1
 
-    self.dispatcher = Dispatcher()
-    self.flooder = flooder.Flooder(addrs, me, int(master))
+    self.flooder = Flooder(addrs, me, master)
 
-    self.clientSock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    self.seen1 = set()
+    self.seen2 = set()
+
+    addrs.remove(me)
+    #self.r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    ###print 'I AM:', me
+    #self.r.bind(me)
+
+    self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+
+  def has_seen(self, clock, origin):
+    return (clock, origin) in self.seen1 or (clock, origin) in self.seen2
+
+  def see(self, clock, origin):
+    self.seen1.add((clock, origin))
 
   def commit(self, tx):
     try:
@@ -94,10 +131,10 @@ class Network(object):
     del self.txs[tx.seq]
 
   def flood_gack_for_key(self, key, seq):
-    self.flooder.send(self.db[key], TYPE_GACK, seq)
+    self.flooder.flood_ack(TYPE_GACK, self.db[key], seq)
 
   def flood_pack_for_key(self, key, seq):
-    self.flooder.send(self.db[key], TYPE_PACK, seq)
+    self.flooder.flood_ack(TYPE_PACK, self.db[key], seq)
 
   def ack_get_xact(self, entry, seq, mast):
     try:
@@ -138,36 +175,53 @@ class Network(object):
       self.clientPut(key, value, opaque, addr)
 
   def clientGet(self, key, opaque, addr):
-    flooder.clock.inc()
+    inc_clock()
     seq = random.random()
-    e = db.Entry(key, (flooder.clock, self.me), self.db[key].val)
+    e = db.Entry(key, (clock, self.me), self.db[key].val)
 
-    self.listeners[seq] = tx.Listener(self.db, opaque, self.clientSock, addr)
+    self.listeners[seq] = tx.Listener(self.db, opaque, self.s, addr)
 
     t = tx.Tx(self, seq)
     self.txs[seq] = t
 
-    self.flooder.send(e, TYPE_GET, seq)
+    pkt = (tuple(e), self.master, TYPE_GET, self.me, seq, clock)
+    self.flooder.flood(self.me, pkt)
     self.flood_gack_for_key(key, seq)
 
   def clientPut(self, key, value, opaque, addr):
-    flooder.clock.inc()
+    inc_clock()
     seq = random.random()
-    e = db.Entry(key, (flooder.clock, self.me), value)
+    e = db.Entry(key, (clock, self.me), value)
 
-    self.listeners[seq] = tx.Listener(self.db, opaque, self.clientSock, addr)
+    self.listeners[seq] = tx.Listener(self.db, opaque, self.s, addr)
 
     t = tx.Tx(self, seq)
     self.txs[seq] = t
 
-    self.flooder.send(e, TYPE_PUT, seq)
+    pkt = (tuple(e), self.master, TYPE_PUT, self.me, seq, clock)
+    self.flooder.flood(self.me, pkt)
     self.flood_pack_for_key(key, seq)
 
-  def loop(self):
-    for (variety, req) in self.flooder:
-      if variety == flooder.SERVER:
-        entry, typ, seq, m = req
-        self.dispatcher.dispatch(entry, seq, typ, m)
-      else:
-        data, addr = req
-        self.clientDispatch(data, addr)
+  def process(self, loop, req, addr):
+    if type(req) is str:
+      self.clientDispatch(req, addr)
+    else:
+      barf("type " + str(type(req)) + " len " + str(len(req)))
+      assert type(req) is tuple and len(req) == 6
+      (entry, m, typ, origin, seq, other_clock) = req
+      entry = db.Entry._make(entry)
+
+      global clock
+      clock = max(other_clock, clock) + 1
+
+      if not self.has_seen(clock, origin): 
+        self.see(other_clock, origin)
+        self.flooder.flood(addr, req)
+        loop.dispatch(entry, seq, typ, m)
+
+  def drain(self, loop):
+    for (req, addr) in self.flooder.r:
+      self.process(loop, req, addr)
+
+    self.flooder.r.batch_send()
+    self.flooder.r.batch_recv()

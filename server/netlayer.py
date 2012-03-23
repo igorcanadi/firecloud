@@ -65,7 +65,10 @@ class BufSocket(Thread):
     if len(self.outq) >= 10:
       self.batch_send()
 
-  def recv(self):
+  def __iter__(self):
+    return self
+
+  def next(self):
     if len(self.inq) > 0:
-      return self.inq.pop(0)
-    return None
+      return self.inq.pop()
+    raise StopIteration
