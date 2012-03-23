@@ -89,7 +89,7 @@ class Tx(object):
       self.entry = entry
 
     try:
-    if int(is_master) != 0:
+      if int(is_master) != 0:
         self.state, action = transition(self.state, master)
       else:
         self.state, action = transition(self.state, normal)
