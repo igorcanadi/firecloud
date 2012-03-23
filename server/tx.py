@@ -134,7 +134,7 @@ class Tx(object):
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
 
-    if is_master:
+    if int(is_master) != 0:
       self.state, action = transition(self.state, master)
     else:
       self.state, action = transition(self.state, normal)
