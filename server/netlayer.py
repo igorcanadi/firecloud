@@ -53,7 +53,6 @@ class BufSocket(Thread):
           self.inq.append((i, addr))
   
   def sendto(self, dat, addr):
-    self.net.see(dat)
     self.outq.append((dat, addr))
     log('Sending : ' + str(dat) + " " + str(addr))
     if len(self.outq) >= 10:

@@ -102,7 +102,6 @@ class Network(object):
     self.flooder = Flooder(addrs, me, self.master, self)
 
     self.seen1 = set()
-    self.seen2 = set()
 
     addrs.remove(me)
     #self.r = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
@@ -111,11 +110,12 @@ class Network(object):
 
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-  def has_seen(self, clock, origin):
-    return (clock, origin) in self.seen1 or (clock, origin) in self.seen2
+  def has_seen(self, typ, opaque, origin):
+    t = (typ, opaque, origin)
+    return t in self.seen1
 
-  def see(self, clock, origin):
-    self.seen1.add((clock, origin))
+  def see(self, typ, opaque, origin):
+    self.seen1.add((typ, opaque, origin))
 
   def commit(self, tx):
     try:
@@ -211,8 +211,8 @@ class Network(object):
       global clock
       clock = max(other_clock, clock) + 1
 
-      if not self.has_seen(other_clock, origin): 
-        self.see(other_clock, origin)
+      if not self.has_seen(typ, see, origin): 
+        self.see(typ, seq, origin)
         self.flooder.flood(addr, req)
         loop.dispatch(entry, seq, typ, m)
 
