@@ -69,5 +69,6 @@ class BufSocket(Thread):
 
   def next(self):
     if len(self.inq) > 0:
+      log('Received : ' + str(self.inq[len(self.inq)-1]))
       return self.inq.pop()
     raise StopIteration
