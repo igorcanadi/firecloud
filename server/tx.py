@@ -4,6 +4,9 @@ import net
 
 from logger import log, barf
 
+
+class CapelTrap(Exception): pass
+
 UNCOMMITED = 0
 COMMIT = 88
 ZOMBIE = 1
@@ -35,7 +38,7 @@ def transition(state, arrow):
   (new_state, action) = STATETBL[state][arrow]
   if new_state == 'D':
     barf('INVALID State Transition: {0} - {1} -> {2}'.format(state, arrow, new_state))
-    raise Exception('Invalid State Transition -- see log.')
+    raise CapelTrap()
 
   return (new_state, action)
 
@@ -93,7 +96,7 @@ class Tx(object):
         self.state, action = transition(self.state, master)
       else:
         self.state, action = transition(self.state, normal)
-    except TypeError:
+    except TypeError, CapelTrap:
       return
     
 

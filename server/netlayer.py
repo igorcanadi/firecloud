@@ -53,7 +53,8 @@ class BufSocket(Thread):
   
   def sendto(self, dat, addr):
     self.outq.append((dat, addr))
-    log('Sending : ' + str(dat) + " " + str(addr))
+    (entry, m, typ, origin, seq, other_clock) = dat
+    log('   sendto {0} : #{2} {3} by {4}'.format(addr, None, hash(str(entry)), typ, origin))
     if len(self.outq) >= 10:
       self.batch_send()
 

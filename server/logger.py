@@ -2,7 +2,7 @@
 from time import time
 
 LOG_FILE = open('/tmp/server.log', 'a', 1)
-VERBOSE = 1
+VERBOSE = 0
 
 def barf(txt):
   if not '\n' in txt:

@@ -206,9 +206,9 @@ class Network(object):
     if type(req) is str:
       self.clientDispatch(req, addr)
     else:
-      barf("type " + str(type(req)) + " len " + str(len(req)))
       assert type(req) is tuple and len(req) == 6
       (entry, m, typ, origin, seq, other_clock) = req
+      log('START: [{0} @ {1}] #{2} {3} by {4}'.format(addr, other_clock, hash(str(req[0])), typ, origin))
       entry = db.Entry._make(entry)
 
       global clock
@@ -218,6 +218,7 @@ class Network(object):
         self.see(other_clock, origin)
         self.flooder.flood(addr, req)
         loop.dispatch(entry, seq, typ, m)
+      log('  << END >>')
 
   def drain(self, loop):
     for (req, addr) in self.flooder.r:
