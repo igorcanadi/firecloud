@@ -53,7 +53,6 @@ class BufSocket(Thread):
   
   def sendto(self, dat, addr):
     self.send_count += 1
-    assert self.send_count < 1000
 
     s = str(dat) + str(addr)
     h = hash(s)

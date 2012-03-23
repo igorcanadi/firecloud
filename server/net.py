@@ -100,7 +100,7 @@ class Network(object):
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
     self.next_zombie = time.time() + 1
 
-    self.flooder = Flooder(addrs, me, master)
+    self.flooder = Flooder(addrs, me, self.master)
 
     self.seen1 = set()
     self.seen2 = set()
@@ -214,7 +214,7 @@ class Network(object):
       global clock
       clock = max(other_clock, clock) + 1
 
-      if not self.has_seen(clock, origin): 
+      if not self.has_seen(other_clock, origin): 
         self.see(other_clock, origin)
         self.flooder.flood(addr, req)
         loop.dispatch(entry, seq, typ, m)
