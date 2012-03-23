@@ -5,7 +5,6 @@ import tx
 import re
 import db
 import time
-import random
 
 from netlayer import BufSocket
 
@@ -176,31 +175,29 @@ class Network(object):
 
   def clientGet(self, key, opaque, addr):
     inc_clock()
-    seq = random.random()
     e = db.Entry(key, (clock, self.me), self.db[key].val)
 
-    self.listeners[seq] = tx.Listener(self.db, opaque, self.s, addr)
+    self.listeners[opaque] = tx.Listener(self.db, opaque, self.s, addr)
 
-    t = tx.Tx(self, seq)
-    self.txs[seq] = t
+    t = tx.Tx(self, opaque)
+    self.txs[opaque] = t
 
-    pkt = (tuple(e), self.master, TYPE_GET, self.me, seq, clock)
+    pkt = (tuple(e), self.master, TYPE_GET, self.me, opaque, clock)
     self.flooder.flood(self.me, pkt)
-    self.flood_gack_for_key(key, seq)
+    self.flood_gack_for_key(key, opaque)
 
   def clientPut(self, key, value, opaque, addr):
     inc_clock()
-    seq = random.random()
     e = db.Entry(key, (clock, self.me), value)
 
-    self.listeners[seq] = tx.Listener(self.db, opaque, self.s, addr)
+    self.listeners[opaque] = tx.Listener(self.db, opaque, self.s, addr)
 
-    t = tx.Tx(self, seq)
-    self.txs[seq] = t
+    t = tx.Tx(self, opaque)
+    self.txs[opaque] = t
 
-    pkt = (tuple(e), self.master, TYPE_PUT, self.me, seq, clock)
+    pkt = (tuple(e), self.master, TYPE_PUT, self.me, opaque, clock)
     self.flooder.flood(self.me, pkt)
-    self.flood_pack_for_key(key, seq)
+    self.flood_pack_for_key(key, opaque)
 
   def process(self, loop, req, addr):
     if type(req) is str:
