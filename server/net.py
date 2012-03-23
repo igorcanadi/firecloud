@@ -203,7 +203,6 @@ class Network(object):
     if type(req) is str:
       self.clientDispatch(req, addr)
     else:
-      barf("type " + str(type(req)) + " len " + str(len(req)))
       assert type(req) is tuple and len(req) == 6
       (entry, m, typ, origin, seq, other_clock) = req
       entry = db.Entry._make(entry)
