@@ -73,9 +73,9 @@ class EventLoop(object):
     self.network.ack_put_xact(entry, seq, mast)
 
 class Flooder(object):
-  def __init__(self, addrs, me, master):
+  def __init__(self, addrs, me, master, net):
     self.addrs = addrs
-    self.r = BufSocket(me)
+    self.r = BufSocket(me, net)
     self.me = me
     self.master = master
 
@@ -99,7 +99,7 @@ class Network(object):
     self.put = re.compile("PUT (\[.*?\]) (\[.*?\]) (\[.*?\])")
     self.next_zombie = time.time() + 1
 
-    self.flooder = Flooder(addrs, me, self.master)
+    self.flooder = Flooder(addrs, me, self.master, self)
 
     self.seen1 = set()
     self.seen2 = set()

@@ -12,7 +12,7 @@ SLEEP_TIME = 0.01
 MAX_SIZE = 3500
 
 class BufSocket(Thread):
-  def __init__(self, me):
+  def __init__(self, me, net):
     super(BufSocket, self).__init__()
     self.sock = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     self.sock.settimeout(.01)
@@ -21,6 +21,7 @@ class BufSocket(Thread):
     self.inq = []
     self.outq = []
     self.history = set([])
+    self.net = net
 
     self.send_count = 0
 
@@ -52,6 +53,7 @@ class BufSocket(Thread):
           self.inq.append((i, addr))
   
   def sendto(self, dat, addr):
+    self.net.see(dat)
     self.outq.append((dat, addr))
     log('Sending : ' + str(dat) + " " + str(addr))
     if len(self.outq) >= 10:
