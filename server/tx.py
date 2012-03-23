@@ -36,51 +36,8 @@ def transition(state, arrow):
     return STATETBL[state][arrow]
   except KeyError:
     barf('INVALID State Transition: in state {0} with tranition of {1}'.format(state, arrow))
-    raise Exception('Invalid State Transition -- see log.')
+    #raise Exception('Invalid State Transition -- see log.')
   return
-
-  if state == 0:
-    if arrow == master:
-      return (2, None);
-    elif arrow == normal:
-      return (1, None);
-    else:
-      assert(0)
-
-  if state == 1:
-    if arrow == master:
-      return (3, COMMIT);
-    elif arrow == normal:
-      return (2, None);
-    else:
-      assert(0)
-
-  if state == 2:
-    if arrow == master:
-      return (4, COMMIT);
-    elif arrow == normal:
-      return (3, COMMIT);
-    else:
-      assert(0)
-
-  if state == 3:
-    if arrow == master:
-      return (5, FINISH);
-    elif arrow == normal:
-      return (4, None);
-    else:
-      assert(0)
-
-  if state == 4:
-    if arrow == master:
-      assert(0)
-    elif arrow == normal:
-      return (5, FINISH);
-    else:
-      assert(0)
-
-  if state == 5:
-    assert(0)
 
 
 
@@ -101,7 +58,6 @@ class Listener(object):
     # send old (or current) value
     #print "sending to client:"
     log('TX to Client :: OK %s %s' % (self.opaque, tx.entry.val))
-    net.client_pkts_sent += 1
     self.sock.sendto("OK %s %s" % (self.opaque, tx.entry.val), self.addr)
 
 class Tx(object):
@@ -134,10 +90,13 @@ class Tx(object):
     if self.entry is None or entry.ts > self.entry.ts:
       self.entry = entry
 
-    if is_master:
-      self.state, action = transition(self.state, master)
-    else:
-      self.state, action = transition(self.state, normal)
+    try:
+      if is_master:
+        self.state, action = transition(self.state, master)
+      else:
+        self.state, action = transition(self.state, normal)
+    except TypeError:
+      return
     
 
     if action == COMMIT:
