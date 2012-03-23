@@ -3,6 +3,10 @@ from db import Entry
 import net
 
 from logger import log, barf
+import logger
+
+import sys
+import traceback
 
 UNCOMMITED = 0
 COMMIT = 88
@@ -33,6 +37,8 @@ STATETBL = {
 
 def transition(state, arrow):
   (new_state, action) = STATETBL[state][arrow]
+  traceback.print_tb(sys.exc_info()[2], file=logger.LOG_FILE)
+  logger.LOG_FILE.flush()
   if new_state == 'D':
     barf('INVALID State Transition: {0} - {1} -> {2}'.format(state, arrow, new_state))
     raise Exception('Invalid State Transition -- see log.')
@@ -89,7 +95,7 @@ class Tx(object):
       self.entry = entry
 
     try:
-      if is_master:
+      if int(is_master) != 0:
         self.state, action = transition(self.state, master)
       else:
         self.state, action = transition(self.state, normal)
