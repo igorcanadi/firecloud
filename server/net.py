@@ -77,6 +77,8 @@ class Flooder(object):
   def __init__(self, addrs, me, master):
     self.addrs = addrs
     self.r = BufSocket(me)
+    self.me = me
+    self.master = master
 
   def flood(self, orig, data):
     for a in filter(lambda x: x != orig, self.addrs):
@@ -110,11 +112,11 @@ class Network(object):
 
     self.s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
 
-  def has_seen(self, pkt):
-    return (pkt.clock, pkt.orig) in self.seen1 or (pkt.clock, pkt.orig) in self.seen2
+  def has_seen(self, clock, origin):
+    return (clock, origin) in self.seen1 or (clock, origin) in self.seen2
 
-  def see(self, pkt):
-    self.seen1.add((pkt.clock, pkt.orig))
+  def see(self, clock, origin):
+    self.seen1.add((clock, origin))
 
   def commit(self, tx):
     try:
@@ -180,7 +182,7 @@ class Network(object):
     ##print key
     assert type(key) is str
     e = db.Entry(key, (clock, self.me), value if type_ == TYPE_PUT else self.db[key].val)
-    self.listeners[r] = tx.Listener(self.db, opaque, self.r, addr)
+    self.listeners[r] = tx.Listener(self.db, opaque, self.s, addr)
     if type_ == TYPE_GET:
       t = tx.Tx(self, r)
       self.txs[r] = t
@@ -191,26 +193,27 @@ class Network(object):
 
     pkt = (tuple(e), self.master, type_, self.me, r, clock)
 
-    self.r.sendto(pkt, self.me)
+    self.flooder.r.sendto(pkt, self.me)
 
   def process(self, loop, req, addr):
     if type(req) is str:
-      self.clientDispatch(data, addr)
+      self.clientDispatch(req, addr)
     else:
-      assert type(req) is tuple and len(req) == 5
+      barf("type " + str(type(req)) + " len " + str(len(req)))
+      assert type(req) is tuple and len(req) == 6
       (entry, m, typ, origin, seq, other_clock) = req
       entry = db.Entry._make(entry)
 
       global clock
-      clock = max(t[5], clock) + 1
+      clock = max(other_clock, clock) + 1
 
-      if not self.has_seen(seq, origin): 
-        self.see(pkt)
-        self.flooder.flood(addr, data)
+      if not self.has_seen(clock, origin): 
+        self.see(clock, origin)
+        self.flooder.flood(addr, req)
         loop.dispatch(entry, seq, typ, m)
 
   def drain(self, loop):
-    for (req, addr) in self.flooder.r.recvfrom():
+    for (req, addr) in self.flooder.r:
       self.process(loop, req, addr)
 
     self.flooder.r.batch_send()
