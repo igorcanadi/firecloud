@@ -11,35 +11,33 @@ DEAD = 3
 
 FINISH = 78
 
-normal = 1
-master = 2
+normal = 'A'
+master = 'M'
 
 TIMEOUT = 1
 ZOMBIE_TIMEOUT = 1
 
+def tm(m, n, mact = None, nact = None):
+  return { master: (m, mact), normal: (n, nact) }
 
 STATETBL = {
-    0 : { master : (2, None),
-          normal : (1, None) },
-    1 : { master : (3, COMMIT),
-          normal : (2, None) },
-    2 : { master : (4, COMMIT),
-          normal : (3, COMMIT) },
-    3 : { master : (5, FINISH),
-          normal : (4, None) },
-    4 : { normal : (5, FINISH) },
-    5 : { }
+    'init' : tm('M', 'A'),
+    'A' : tm('MA', 'AA', mact=COMMIT),
+    'AA' : tm('MAA', 'AAA', mact=COMMIT, nact=COMMIT),
+    'AAA' : tm('MAAA', 'D', mact=FINISH),
+    'M' : tm('D', 'MA', nact=COMMIT),
+    'MA' : tm('D', 'MAA'),
+    'MAA' : tm('D', 'MAAA', nact=FINISH),
+    'MAAA' : tm('D', 'D'),
   }
 
 def transition(state, arrow):
-  try:
-    return STATETBL[state][arrow]
-  except KeyError:
-    barf('INVALID State Transition: in state {0} with tranition of {1}'.format(state, arrow))
-    #raise Exception('Invalid State Transition -- see log.')
-  return
+  (new_state, action) = STATETBL[state][arrow]
+  if new_state == 'D':
+    barf('INVALID State Transition: {0} - {1} -> {2}'.format(state, arrow, new_state))
+    raise Exception('Invalid State Transition -- see log.')
 
-
+  return (new_state, action)
 
 class Listener(object):
   def __init__(self, db, opaque, sock, addr):
@@ -63,7 +61,7 @@ class Listener(object):
 class Tx(object):
   def __init__(self, net, seq):
     self.entry = None
-    self.state = 0
+    self.state = 'init'
     self.seq = seq
     self.update = None
     self.start = time.time()
