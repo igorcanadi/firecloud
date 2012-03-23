@@ -1,3 +1,40 @@
 Simple distributed key-value store.
 
 Homework for CS739 at UW-M.
+Firecloud : Igor, Capel, and Victor
+
+How the System Works
+
+Our system is based on Dynamo. It uses a read and write quorum, and has a master node to break ties in the case of a 2-2 partition. 
+
+Our primary goals for the system are:
+- we have strong consistency except under very extreme/unusual conditions 
+- Availability as long as there is a quorum (3 non-master nodes, or 1 node + master) 
+- We have good performance and consistency when some networks are down but there is a path of connectivity, (eg. the ‘horse shoe’ network layout).
+- In a 2 - 2 partition, half of the nodes are available, the other half are not
+- We maintain consistency and availability in the event of a single node failure -- note that multiple node may cause a loss of consistency (this could be easily fixed by implementing persistence, see future work). 
+- We can maintain performance, availability and consistency in many combinations of node failure and partitions
+- We were not as concerned with multiple concurrent clients -- this may cause some failed read/writes and possibly consistency. 
+
+Starting and Stopping servers
+
+To start the servers, use:
+./launch.sh
+
+(The IPs for the servers must be set in config.sh, the defaults should be good)
+
+To kill the servers, you can simply call ‘kill.sh’ -- this will stop all of the servers (by using killall)
+
+The client shared library is in:
+client/
+a makefile is provided
+
+If you need to manually start our server, it can be invoked as:
+./server/main.py index host:port host:port host:port host:port
+e.g.
+python ~/server/main.py 3 192.168.56.101:8808 192.168.56.102:8808 192.168.56.103:8808 192.168.56.104:8808
+
+where index is the index of the machine in the list (e.g. in the above examlpe, 3 indicates that this server should serve from 192.168.56.104:8808)
+
+Note on performance and behavior:
+We use UDP to send messages between servers. Each request sent into the system by the client generates a lot of UDP messages on the backend. This means that many clients sending a lot of requests can cause kernel buffers to overflow and cause behavior to degrade significantly. 
