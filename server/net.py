@@ -35,7 +35,7 @@ class EventLoop(object):
   def poll(self):
     """ Infinitely handle packets as they arrive """
     for pkt in self.network.poll():
-      self.dispatch(pkt.entry, pkt.seq, pkt.type, pkt.is_master)
+      self.dispatch(pkt.entry, pkt.seq, pkt.type, int(pkt.is_master))
 
   def dispatch(self, entry, seq, typ, m):
     """ Recieves a packet contents form lower level network layer
@@ -114,7 +114,8 @@ class Network(object):
     self.__flood(None, pickle.dumps((tuple(entry), self.master, t, self.me, seq, clock), 2))
 
   def has_seen(self, pkt):
-    return (pkt.clock, pkt.orig) in self.seen1 or (pkt.clock, pkt.orig) in self.seen2
+    t = (pkt.seq, pkt.type, pkt.orig)
+    return t in self.seen1 or t in self.seen2
 
   def commit(self, tx):
     ##print 'Commit: ', tx.entry
@@ -133,7 +134,7 @@ class Network(object):
     del self.txs[tx.seq]
 
   def see(self, pkt):
-    self.seen1.add((pkt.clock, pkt.orig))
+    self.seen1.add((pkt.seq, pkt.type, pkt.orig))
 
   def flood_gack_for_key(self, key, seq):
     self.flood_ack(TYPE_GACK, self.db[key], seq)
@@ -183,7 +184,6 @@ class Network(object):
       type_ = TYPE_PUT
 
     inc_clock()
-    r = random.random()
     ##print key
     assert type(key) is str
     e = db.Entry(key, (clock, self.me), value if type_ == TYPE_PUT else self.db[key].val)
@@ -195,7 +195,7 @@ class Network(object):
     ##print self.db[key]
     assert type(e.key) is str
     inc_clock()
-    pkt = pickle.dumps((tuple(e), self.master, type_, self.me, r, clock), 2)
+    pkt = pickle.dumps((tuple(e), self.master, type_, self.me, opaque, clock), 2)
 
     global server_pkts_sent
     server_pkts_sent += 1
