@@ -20,49 +20,10 @@ class BufSocket(Thread):
     self.sock.bind(me)
     self.inq = []
     self.outq = []
+    self.history = set([])
 
-  def run(self):
-    while True:
-      buckets = {}
+    self.send_count = 0
 
-      while not self.outq.empty():
-        (dat, addr) = self.outq.get()
-        if addr not in buckets:
-          buckets[addr] = []
-        buckets[addr].append(dat)
-        log('Spooled data.')
-
-      for addr in buckets.keys():
-        d = pickle.dumps(buckets[addr])
-        self.sock.sendto(d, addr)
-        log('Sent to: '+ addr)
-
-      try:
-        d, addr = self.sock.recvfrom(1024 * 8)
-      except socket.error:
-        sleep (SLEEP_TIME)
-        continue
-
-      log('Got something!')
-
-      try:
-        log('about to un-pickle')
-        log('Pickle loads: ' + d)
-        l = pickle.loads(d)
-        log('Got L:', l)
-      except:
-        log('About t put.')
-        self.inq.put((d, addr))
-        log('Recieved from client: ' + d)
-        sleep (SLEEP_TIME)
-        continue
-
-      log('Didn\'t put.')
-      for i in l:
-        self.inq.put((i, addr))
-        log('Queued a recieved packet')
-      sleep (SLEEP_TIME)
-  
   def batch_send(self):
     buckets = {}
 
@@ -71,12 +32,11 @@ class BufSocket(Thread):
       if addr not in buckets:
         buckets[addr] = []
       buckets[addr].append(dat)
-      log('Spooled data.')
+    self.outq = []
 
     for addr in buckets.keys():
       d = pickle.dumps(buckets[addr])
       self.sock.sendto(d, addr)
-      log('Sent to: '+ str(addr))
   
   def batch_recv(self):
     while True:
@@ -84,7 +44,6 @@ class BufSocket(Thread):
         d, addr = self.sock.recvfrom(1024 * 8)
       except socket.timeout:
         break
-
       if d.startswith("GET") or d.startswith("PUT"):
         self.inq.append((d, addr))
       else:
@@ -93,7 +52,15 @@ class BufSocket(Thread):
           self.inq.append((i, addr))
   
   def sendto(self, dat, addr):
-    log('Net Send')
+    self.send_count += 1
+    assert self.send_count < 1000
+
+    s = str(dat) + str(addr)
+    h = hash(s)
+    log('Sending : ' + s)
+    if s in self.history:
+      raise Exception('Re-Sending packet: ' + s)
+    self.history.add(h)
     self.outq.append((dat, addr))
     if len(self.outq) >= 10:
       self.batch_send()

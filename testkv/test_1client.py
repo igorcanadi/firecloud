@@ -17,11 +17,11 @@ harn = create_harness()
 
 NUM_CLIENTS = 4
 
-REQS = 3000
+REQS = 2
 
 cli = harn.client_by_mask(0xF)
 
-CLOCK_RATE = 3
+CLOCK_RATE = 1000
 
 for r in xrange(REQS/2):
   cli['foo'] = r
