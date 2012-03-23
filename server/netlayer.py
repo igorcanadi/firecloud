@@ -9,6 +9,7 @@ from logger import log
 import cPickle as pickle
 
 SLEEP_TIME = 0.01
+MAX_SIZE = 3500
 
 class BufSocket(Thread):
   def __init__(self, me):
@@ -94,6 +95,8 @@ class BufSocket(Thread):
   def sendto(self, dat, addr):
     log('Net Send')
     self.outq.append((dat, addr))
+    if len(self.outq) >= 10:
+      self.batch_send()
 
   def __iter__(self):
     return self
