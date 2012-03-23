@@ -52,14 +52,6 @@ class BufSocket(Thread):
           self.inq.append((i, addr))
   
   def sendto(self, dat, addr):
-    self.send_count += 1
-
-    s = str(dat) + str(addr)
-    h = hash(s)
-    log('Sending : ' + s)
-    if s in self.history:
-      raise Exception('Re-Sending packet: ' + s)
-    self.history.add(h)
     self.outq.append((dat, addr))
     if len(self.outq) >= 10:
       self.batch_send()
