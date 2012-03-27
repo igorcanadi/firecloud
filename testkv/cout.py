@@ -1,4 +1,5 @@
 
+import errno
 from struct import pack
 from collections import namedtuple
 from subprocess import Popen, PIPE, STDOUT
@@ -132,11 +133,17 @@ def run_transcript(tups, abstime, sevt):
   buf = Buffer_()
   for ti, tick, evt in tups:
     write_out(abstime, int(ti), tick, evt, buf.write)
-  p = Popen(['./runner'], stdin=PIPE, stderr=PIPE, stdout=PIPE)
+  p = Popen(['./runner'], stdin=PIPE, stdout=PIPE)
   sevt.set()
+  with open('raw_xcript', 'w') as f:
+    f.write(buf.buf)
   print 'Client Forked.'
   out, err = p.communicate(input=buf.buf)
-  #print out, err
+  if p.returncode != 0:
+    print 'Return code: {0} {1}'.format(p.returncode, errno.errorcode[abs(p.returncode)])
+    print ":" * 79
+    print out, err
+    print ":" * 79
   return reconstruct(out, tups)
 
 def fake_run_transcript(tups):
@@ -202,6 +209,8 @@ def reconstruct(text, tups):
           # no previous key
           txt = '[]'
         construct.append((tick, msec, tickmap[tick], txt))
+  if last_time_stamp == None:
+    return None
   return ClientTrace(construct, usec_slack/ (1000.0 * 1000.0), reqcount, last_time_stamp-first_time_stamp)
 
 #run_transcript( [(0, 0, Init(['localhost:8080']))] )

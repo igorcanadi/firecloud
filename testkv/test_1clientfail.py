@@ -19,6 +19,10 @@ REQS = 50
 
 cli = harn.client_by_mask(0xF)
 
+cli.fail(harn.servers[0]);
+cli.fail(harn.servers[1]);
+cli.fail(harn.servers[2]);
+
 CLOCK_RATE = 3
 
 for r in xrange(REQS/2):

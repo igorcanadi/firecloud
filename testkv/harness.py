@@ -30,9 +30,12 @@ class Harness(object):
   def client_by_mask(self, mask):
     srvs = []
     for i, srv in enumerate(self.servers):
-      if mask & (2 ** i) != 0:
+      if mask & (2 ** i) == 0:
         srvs.append(srv)
-    return self.make_client(srvs)
+    c = self.make_client(self.servers)
+    for s in srvs:
+      c.fail(s)
+    return c
   
   def clients_by_masks(self, masks):
     return map(self.client_by_mask, masks)
@@ -83,6 +86,8 @@ class Harness(object):
     act.join()
     for cli, t in zip(self.clients, thrds):
       t.join()
+      if t.ctrace is None:
+        raise Exception("No trace for: {0}".format(cli))
       cli.ctrace = t.ctrace
 
   def print_stats(self):

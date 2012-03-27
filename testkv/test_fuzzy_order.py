@@ -2,7 +2,8 @@
 
 from framework import Client, Server, Clock, Transcript, Network, CLOCK_RATE
 from analysis import replay_gets_into_dict, merge_traces, \
-                    eval_strict_ordering, count_errors
+                    eval_strict_ordering, count_errors, \
+                    eval_fuzzy_order
 
 from time import time
 
@@ -22,7 +23,7 @@ cli = harn.client_by_mask(0xF)
 CLOCK_RATE = 3
 
 for r in xrange(REQS/2):
-  cli['foo'] = r
+  cli['foo'] = '1 {0}'.format(r)
   cli['foo']
 
 start = time()
@@ -32,11 +33,12 @@ end = time()
 print 'Delta time (s): ', end - start
 print 'Reqs / second: ', REQS * 1.0 / (end-start)
 
+harn.print_stats()
 print 'Strict Ordering: ', eval_strict_ordering(cli.ctrace)
 
-for tick, ti, evt, resl in cli.ctrace:
-  print '{0} {1} {2}'.format(tick, evt, resl)
+print 'Fuzzy order eval: ', eval_fuzzy_order(cli.ctrace)
 
-harn.print_stats()
+
+
 
 

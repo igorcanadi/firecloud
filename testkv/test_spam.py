@@ -15,7 +15,7 @@ hard_reset()
 
 harn = create_harness()
 
-NUM_CLIENTS = 4
+NUM_CLIENTS = 6
 
 REQS = 3000
 
