@@ -36,8 +36,8 @@ kv['foo'] = '#1 4'
 kv2['foo'] = '#2 5'
 harn.network[serv] = True
 
-kv['foo'] = '#1 : 6'
-kv2['foo'] = '#2 : 7'
+kv['foo'] = '#1 6'
+kv2['foo'] = '#2 7'
 kv['foo']
 kv2['foo']
 

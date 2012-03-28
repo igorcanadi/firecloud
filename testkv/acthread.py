@@ -28,6 +28,7 @@ class ActThread(Thread):
     self.tups = tups
 
   def run(self):
+    print 'Act Thread started.'
     start = self.abstime * 1.0 /1000
     for offset, act in self.tups:
       # offset is in msec

@@ -27,49 +27,46 @@ serv3  = harn.servers[3]
 kv = cli.store
 kv2 = cli2.store
 
+KEYS = 200
+
 harn.network[(serv, serv1)] = False
 
-kv['parted'] = '#1 : 0'
-kv2['parted'] = '#2 : 0'
+for k in xrange(KEYS):
+  kv['A1 %s'%k] = 'A_%s' % k
+  kv2['B1 %s'%k] = 'B_%s' % k
 
-kv['joint'] = '#1 : 1'
-kv2['joint'] = '#2 : 1'
-
-kv['joint2'] = '#1 : 2'
-kv2['join2'] = '#2 : 2'
-
-kv['parted']
-kv2['parted']
+for k in xrange(KEYS):
+  kv['A2 %s'%k] = 'A2 %s' % k
+  kv2['A1 %s'%k]
+  kv['B1 %s'%k]
+  kv2['B2 %s'%k] = 'B2 %s' % k
 
 harn.network[(serv, serv1)] = True
 
-kv['joint']
-kv2['joint']
-
-for i in xrange(50):
-  harn.clock.tick()
-
-
-kv['joint2']
-kv2['joint2']
+for k in xrange(KEYS):
+  kv['B2 %s'%k]
+  kv2['A2 %s'%k]
 
 
 harn.execute(CLOCK_RATE)
 
-joint_print(cli.ctrace, cli2.ctrace)
-
 d0 = replay_gets_into_dict(cli.ctrace)
 d1 = replay_gets_into_dict(cli2.ctrace)
 
-errs = eval_strict_ordering(merge_traces(cli.ctrace, cli2.ctrace))
-
-print "Ordering Errors (except !=0): ", errs
+while_sep = 0
+together = 0
+for k in xrange(KEYS):
+  if d1['A1 %s'%k] != '[A_%s]' % k:
+    while_sep += 1
+  if d0['B1 %s'%k] != '[B_%s]' % k:
+    while_sep += 1
+  
+  if d1['A1 %s'%k] != '[A %s]' % k:
+    together += 1
+  if d0['B1 %s'%k] != '[B %s]' % k:
+    together += 1
 
 harn.print_stats()
 
-print 'Consistent when partitioned? [{0}] {1}'.format(d0['parted'], d0['parted'] == d1['parted'])
-print 'Consistent immediately after join? [{0}] {1}'.format(d0['joint'], d0['joint'] == d1['joint'])
-print 'Consistent after a while? [{0}] {1}'.format(d0['joint2'], d0['joint2'] == d1['joint2'])
-
-
-print '** Has Routing? {0}'.format(d0['parted'] == d1['parted'])
+print 'Missing when seperated: ', while_sep
+print 'Missing when together: ', together

@@ -18,17 +18,18 @@ hard_reset()
 
 harn = create_harness()
 
-REQS = 50
+REQS = 500
 
 cli = harn.client_by_mask(0xF)
 
 network_quad(harn)
 
-CLOCK_RATE = 3
 
-for r in xrange(REQS/2):
-  cli['foo'] = r
-  cli['foo']
+for r in xrange(REQS):
+  cli['ke'+str(r)] = r
+  cli[str(r) + 'ke'] = r
+  cli['ke'+str(r)]
+  cli[str(r) + 'ke']
 
 start = time()
 harn.execute(CLOCK_RATE)
@@ -42,5 +43,5 @@ harn.print_stats()
 
 print 'Strict Ordering: ', eval_strict_ordering(cli.ctrace)
 
-pretty_print(cli.ctrace)
+#pretty_print(cli.ctrace)
 

@@ -32,21 +32,23 @@ harn.network[(serv, serv3)] = False
 harn.network[(serv1, serv2)] = False
 harn.network[(serv1, serv3)] = False
 
-kv['parted'] = 'left : 0'
-kv2['parted'] = 'right : 0'
+kv['partedA'] = 'A : 0'
+kv2['partedB'] = 'B : 0'
 
-kv['left'] = 'True'
-kv2['right'] = 'True'
+kv['A flag'] = 'Set by A'
+kv2['B flag'] = 'Set by B'
+
+kv['partedB']
+kv2['partedA']
 
 harn.network[(serv, serv2)] = True
 harn.network[(serv, serv3)] = True
 harn.network[(serv1, serv2)] = True
 harn.network[(serv1, serv3)] = True
 
-kv['right']
-kv2['left']
-kv['parted']
-kv2['parted']
+kv['B flag']
+kv2['A flag']
+
 
 
 harn.execute(CLOCK_RATE)
@@ -62,5 +64,5 @@ print "Ordering Errors (except !=0): ", errs
 
 harn.print_stats()
 
-print d0, d1
+print d0['right'], d1['left']
 

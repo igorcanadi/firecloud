@@ -24,11 +24,11 @@ clients = harn.clients_by_masks( [0x1, 0x2, 0x4, 0x8] )
 network_quad(harn)
 
 
-ROUNDS = 20
+ROUNDS = 100
 
 for r in xrange(ROUNDS):
   for i, c in enumerate(clients):
-    c.store['key'] = '{0}.{1}'.format(i, r)
+    c.store['key'] = '{0} {1}'.format(i, r)
 
 harn.execute(CLOCK_RATE)
 

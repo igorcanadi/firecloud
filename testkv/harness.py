@@ -60,6 +60,9 @@ class Harness(object):
       cli.recover(serv)
 
   def execute(self, clkrate):
+    print '*' * 50
+    print '*' + ' ' * 10 + 'Clockrate: ', clkrate
+    print '*' * 50
     ignore, plan, ignore = build_plan(self.network, clkrate)
     thrds = []
     #stuff = []

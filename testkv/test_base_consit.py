@@ -14,12 +14,12 @@ from actuator import hard_reset
 
 hard_reset()
 
-ROUNDS = 5
-KEYS = 10
+ROUNDS = 50
+KEYS = 40
 
 harn = create_harness()
 
-clients = harn.clients_by_masks( [0x1, 0x2, 0x4, 0x8] )
+clients = harn.clients_by_masks( [0xF, 0xF] )
 
 for r in xrange(ROUNDS):
   for i, c in enumerate(clients):

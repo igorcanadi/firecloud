@@ -24,7 +24,7 @@ POST_NETWORK_WINDOW = 700
 
 # Window which all clients have to synchronize
 # This accounts for processor scheduling issues
-SYNC_WINDOW = 2000
+SYNC_WINDOW = 1000
 
 
 # Key and Value max sizes

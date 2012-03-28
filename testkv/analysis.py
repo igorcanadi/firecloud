@@ -128,6 +128,7 @@ def eval_fuzzy_order(trace):
     resl = resl.lstrip('[').rstrip(']')
     if isinstance(evt, Put):
       cl0, v0 = evt.val.split(' ')
+      assert resl is not None
       if resl == '':
         start.append((cl0, v0))
         continue
@@ -139,6 +140,7 @@ def eval_fuzzy_order(trace):
 
       g[(cl1,  v1)] = (cl0, v0)
 
+  print start
   # graph built
 
   # find a starting point, a node with no enterance

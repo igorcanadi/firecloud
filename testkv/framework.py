@@ -12,14 +12,14 @@ class Server(object):
     self.xcript = xcript
 
   def fail(self):
-    self.xcript.clock.tick(int(PRE_NETWORK_WINDOW / CLOCK_RATE))
+    self.xcript.clock.tick(int(PRE_NETWORK_WINDOW *1.0/ CLOCK_RATE))
     self.xcript.record(HostKill(self.host, self.port))
-    self.xcript.clock.tick(int(POST_NETWORK_WINDOW / CLOCK_RATE))
+    self.xcript.clock.tick(int(POST_NETWORK_WINDOW *1.0 / CLOCK_RATE))
 
   def recover(self):
-    self.xcript.clock.tick(int(PRE_NETWORK_WINDOW / CLOCK_RATE))
+    self.xcript.clock.tick(int(PRE_NETWORK_WINDOW *1.0 / CLOCK_RATE))
     self.xcript.record(HostUp(self.host, self.port))
-    self.xcript.clock.tick(int(POST_NETWORK_WINDOW / CLOCK_RATE))
+    self.xcript.clock.tick(int(POST_NETWORK_WINDOW *1.0/ CLOCK_RATE))
   
   def __str__(self):
     return '{0.host}:{0.port}'.format(self)
