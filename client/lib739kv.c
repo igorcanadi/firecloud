@@ -40,7 +40,7 @@ int global_sck;
 struct sockaddr_in server_addresses[MAX_SERVERS];
 // timeouts are in microseconds
 // timeout i means that we wait that much in ith retry
-int timeouts[3] = {15 * 1000, 15 * 1000, 80 * 1000};
+int timeouts[3] = {7 * 1000, 12 * 1000, 60 * 1000};
 
 // -1 on failure
 // 0 on ok
