@@ -1,7 +1,24 @@
 #include <stdio.h>
 #include <time.h>
 #include <stdlib.h>
+#include <time.h>
 #include "../client/lib739kv.h"
+
+long long lags[10000];
+int size_lags = 0;
+long long global_clock;
+
+void start_time() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    global_clock = tv.tv_usec + tv.tv_sec * 1000000;
+}
+
+void end_time() {
+    struct timeval tv;
+    gettimeofday(&tv, NULL);
+    lags[size_lags++] = tv.tv_usec + tv.tv_sec * 1000000 - global_clock;
+}
 
 int main() {
     long long i;
@@ -31,22 +48,31 @@ int main() {
     sprintf(t4, "wohoooooo");
 
     long long er = 0;
-    int start_time = time(NULL); 
+    int s_time = time(NULL); 
 
-    for (i = 0; ; ++i) {
+    for (i = 0; i < 5000; ++i) {
       t1[1] = rand()%3 + '0';
       t1[2] = rand()%10 + '0';
       t2[1] = rand()%3 + '0';
       t2[2] = rand()%10 + '0';
       char *a = (rand()%2) ? t3 : t4;
+
+      start_time();
       int r = kv739_put(t1, a, buf);
+      end_time();
       if (r == -1) ++er;
+      start_time();
       r = kv739_get(t2, buf);
+      end_time();
       if (r == -1) ++er;
 
-      if (i % 1800 == 0) {
-          printf("time elapsed: %d ----- errors: %lld/%lld\n", time(NULL) - start_time, er, i*2);
+      if (i % 100 == 0) {
+          //fprintf(stderr, "time elapsed: %d ----- errors: %lld/%lld\n", time(NULL) - s_time, er, i*2);
       }
+    }
+
+    for (i = 0; i < size_lags; ++i) {
+        printf("%d\n", lags[i]);
     }
 
     return 0;
